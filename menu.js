@@ -204,37 +204,113 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  // ---- 2b. Magento detection & duplicate-header hiding -------
-  // On Magento pages, we want to hide the existing theme header so we
-  // don't show two menus stacked on top of each other. But we MUST keep
-  // Magento's mini-cart DOM element alive and functional so its JavaScript
-  // (item count, slide-out popup, live updates) continues to work - we
-  // just make it visually invisible. Users will use the cart icon in our
-  // shared menu instead, which links directly to /checkout/cart/.
+  // ---- 2b. Magento detection & integration -------------------
+  // On Magento pages we want to:
+  //   1. Hide the original Magento theme header (duplicate menu)
+  //   2. Hide Magento's breadcrumbs
+  //   3. Force our menu to span full width regardless of Magento's layout
+  //   4. Relocate Magento's native minicart widget into our menu's cart slot,
+  //      preserving the slide-out popup and live item count badge
   var isMagento = typeof window.checkout !== 'undefined'
                || !!document.querySelector('body[class*="cms-"], body[class*="catalog-"], body[class*="checkout-"]');
   if (isMagento) {
     var magentoHideCSS = document.createElement('style');
     magentoHideCSS.setAttribute('data-prc-magento-hide', 'true');
     magentoHideCSS.textContent = `
-      /* Hide the top panel/announcement bar */
+      /* Hide original Magento header pieces */
       .page-header > .panel.wrapper { display: none !important; }
-      /* Hide nav sections (the mobile/responsive menu container) */
       .page-header .sections.nav-sections { display: none !important; }
-      /* Hide the custom main-header built by the theme */
       header.main-header { display: none !important; }
-      /* Hide the standard Magento header content row if present */
       .page-header .header.content { display: none !important; }
-      /* But KEEP the minicart element in the DOM - just visually hidden
-         so Magento's JS (which watches for DOM elements) keeps working */
-      .minicart-wrapper {
-        position: absolute !important;
-        left: -9999px !important;
-        top: -9999px !important;
-        visibility: hidden !important;
-      }
-      /* Remove extra spacing left behind by hidden header elements */
+
+      /* Hide breadcrumbs */
+      .breadcrumbs, .page-header + .breadcrumbs, nav.breadcrumbs { display: none !important; }
+
+      /* Remove extra spacing from stripped-out header elements */
       .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; }
+
+      /* Force our shared menu to span the full width of the viewport,
+         ignoring any Magento wrapper width constraints. */
+      #prc-menu-mount,
+      #prc-menu-mount .prc-nav-container {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin-left: calc(50% - 50vw) !important;
+        margin-right: calc(50% - 50vw) !important;
+      }
+
+      /* When Magento's native minicart is relocated into our menu slot,
+         restore its visibility and strip theme styling that would make it
+         look wrong in our menu. */
+      #prc-menu-mount .minicart-wrapper {
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        visibility: visible !important;
+        margin-left: 10px !important;
+      }
+      /* Style the relocated minicart to match our cart button look */
+      #prc-menu-mount .minicart-wrapper .action.showcart {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 44px !important;
+        height: 44px !important;
+        border: 1px solid #ff3300 !important;
+        border-radius: 50% !important;
+        color: #000 !important;
+        text-decoration: none !important;
+        position: relative !important;
+        background: transparent !important;
+        transition: all 0.3s ease !important;
+      }
+      #prc-menu-mount .minicart-wrapper .action.showcart:hover {
+        background: #ff3300 !important;
+      }
+      #prc-menu-mount .minicart-wrapper .action.showcart:hover::before,
+      #prc-menu-mount .minicart-wrapper .action.showcart:hover .text {
+        color: #fff !important;
+      }
+      /* Hide the default "My Cart" text label - we want icon only */
+      #prc-menu-mount .minicart-wrapper .action.showcart .text {
+        position: absolute !important;
+        width: 1px !important; height: 1px !important;
+        overflow: hidden !important; clip: rect(0,0,0,0) !important;
+      }
+      /* Magento uses a pseudo-element icon font for the cart icon - ensure it shows */
+      #prc-menu-mount .minicart-wrapper .action.showcart::before {
+        font-size: 18px !important;
+        color: #000 !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+      }
+      /* Item count badge - position it nicely on the top-right of the icon */
+      #prc-menu-mount .minicart-wrapper .action.showcart .counter.qty {
+        position: absolute !important;
+        top: -6px !important;
+        right: -6px !important;
+        min-width: 20px !important;
+        height: 20px !important;
+        padding: 0 4px !important;
+        background: #ff3300 !important;
+        color: #fff !important;
+        border-radius: 10px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+      }
+      #prc-menu-mount .minicart-wrapper .action.showcart .counter.qty.empty {
+        display: none !important;
+      }
+      #prc-menu-mount .minicart-wrapper .counter-label { display: none !important; }
+
+      /* If we've relocated the minicart, hide our own fallback cart button
+         so we don't end up with two cart icons. */
+      #prc-menu-mount.has-magento-cart .cart-btn { display: none !important; }
     `;
     document.head.appendChild(magentoHideCSS);
   }
@@ -352,6 +428,37 @@
     mount.innerHTML = menuHTML;
 
     attachBehaviors();
+
+    // On Magento: try to relocate Magento's native minicart widget into our
+    // menu's cart slot. We retry for up to ~5 seconds because Magento's
+    // Knockout bindings initialize asynchronously and the element may not
+    // be ready when our script first runs.
+    if (isMagento) {
+      relocateMagentoCart();
+    }
+  }
+
+  function relocateMagentoCart() {
+    var attempts = 0;
+    var maxAttempts = 50; // 50 * 100ms = 5 seconds
+    var interval = setInterval(function () {
+      attempts++;
+      var magentoCart = document.querySelector('.minicart-wrapper');
+      var mount = document.getElementById(MOUNT_ID);
+      var ourCartBtn = mount ? mount.querySelector('.cart-btn') : null;
+
+      if (magentoCart && mount && ourCartBtn && !mount.contains(magentoCart)) {
+        // Insert Magento's cart widget right before our fallback cart button
+        ourCartBtn.parentNode.insertBefore(magentoCart, ourCartBtn);
+        // Mark the mount so our CSS hides our fallback cart button
+        mount.classList.add('has-magento-cart');
+        clearInterval(interval);
+      } else if (attempts >= maxAttempts) {
+        // Gave up - Magento minicart never materialized on this page.
+        // Our own fallback cart button stays visible as a backup.
+        clearInterval(interval);
+      }
+    }, 100);
   }
 
   // ---- 5. Attach hover + scroll behaviors -------------------
