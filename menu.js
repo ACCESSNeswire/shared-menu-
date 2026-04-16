@@ -205,14 +205,25 @@
   document.head.appendChild(style);
 
   // ---- 2b. Magento detection & integration -------------------
-  // On Magento pages we want to:
+  // On Magento pages we:
   //   1. Hide the original Magento theme header (duplicate menu)
   //   2. Hide Magento's breadcrumbs
   //   3. Force our menu to span full width regardless of Magento's layout
-  //   4. Relocate Magento's native minicart widget into our menu's cart slot,
-  //      preserving the slide-out popup and live item count badge
-  var isMagento = typeof window.checkout !== 'undefined'
-               || !!document.querySelector('body[class*="cms-"], body[class*="catalog-"], body[class*="checkout-"]');
+  //   4. Relocate Magento's native minicart widget into our menu's cart slot
+  //
+  // Strict detection: only true if we see Magento-specific globals or DOM
+  // markers that would never appear on Duda or other platforms. Generic
+  // body class matches (like [class*="cms-"]) are NOT used because Duda
+  // sometimes adds classes with those substrings, causing false positives.
+  function detectMagento() {
+    if (typeof window.checkout !== 'undefined' && window.checkout && window.checkout.baseUrl) return true;
+    if (typeof window.BASE_URL !== 'undefined' && typeof window.LOCALE !== 'undefined') return true;
+    if (document.querySelector('.minicart-wrapper[data-block="minicart"]')) return true;
+    // Fall back to looking for Magento's page-wrapper combined with its script signature
+    if (document.querySelector('script[src*="/static/version"][src*="/mage/"]')) return true;
+    return false;
+  }
+  var isMagento = detectMagento();
   if (isMagento) {
     var magentoHideCSS = document.createElement('style');
     magentoHideCSS.setAttribute('data-prc-magento-hide', 'true');
@@ -452,7 +463,80 @@
     // be ready when our script first runs.
     if (isMagento) {
       relocateMagentoCart();
+    } else {
+      // Off-Magento (e.g., Duda): fetch the live cart count from Magento
+      // using the shared-cookie session, and paint a badge on the cart icon.
+      fetchAndShowDudaCartBadge();
     }
+  }
+
+  // ---- Duda cart badge --------------------------------------
+  // Cross-subdomain cart count retrieval. Requires Magento's cookie domain
+  // to be set to .pressrelease.com so the fetch includes Magento's session
+  // cookies. Response is JSON with a 'cart' section containing 'summary_count'.
+  function fetchAndShowDudaCartBadge() {
+    var cartBtn = document.querySelector('#prc-menu-mount .cart-btn');
+    if (!cartBtn) return;
+
+    // Remove any stale badge from previous page loads
+    var oldBadge = cartBtn.querySelector('.prc-cart-badge');
+    if (oldBadge) oldBadge.remove();
+
+    // Inject the badge CSS once
+    if (!document.querySelector('style[data-prc-badge]')) {
+      var badgeStyle = document.createElement('style');
+      badgeStyle.setAttribute('data-prc-badge', 'true');
+      badgeStyle.textContent = `
+        .prc-nav-container .cart-btn { position: relative !important; }
+        .prc-nav-container .cart-btn .prc-cart-badge {
+          position: absolute !important;
+          top: -4px !important;
+          right: -4px !important;
+          min-width: 20px !important;
+          height: 20px !important;
+          padding: 0 5px !important;
+          background: #ff3300 !important;
+          color: #fff !important;
+          border-radius: 10px !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          line-height: 1 !important;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+          pointer-events: none !important;
+        }
+      `;
+      document.head.appendChild(badgeStyle);
+    }
+
+    // Hit Magento's section-load endpoint. Because cookies are now shared
+    // on .pressrelease.com, this request is authenticated as the same user.
+    var endpoint = 'https://checkout.pressrelease.com/customer/section/load/?sections=cart&update_section_id=false';
+    fetch(endpoint, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Cart fetch failed: ' + res.status);
+      return res.json();
+    }).then(function (data) {
+      var count = 0;
+      if (data && data.cart && typeof data.cart.summary_count !== 'undefined') {
+        count = parseInt(data.cart.summary_count, 10) || 0;
+      }
+      if (count > 0) {
+        var badge = document.createElement('span');
+        badge.className = 'prc-cart-badge';
+        badge.textContent = count > 99 ? '99+' : String(count);
+        cartBtn.appendChild(badge);
+      }
+    }).catch(function (err) {
+      // Silent failure - the cart icon just shows no badge.
+      // Common reasons: CORS blocked, user has no session, network error.
+      // Uncomment for debugging: console.warn('[PRC menu] cart badge fetch failed:', err);
+    });
   }
 
   function relocateMagentoCart() {
