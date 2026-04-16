@@ -5,7 +5,7 @@
  * (Duda, Magento, etc.) with a single line:
  *
  *   <script src="https://YOUR-USER.github.io/menu/menu.js"></script>
- * v2
+ *
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
  * (usually under a minute, sometimes a few minutes).
@@ -544,7 +544,7 @@
     // The iframe runs same-origin with Magento so it can read cart localStorage,
     // and it posts the count back to us via postMessage.
     var iframe = document.createElement('iframe');
-    iframe.src = expectedOrigin + '/cart-bridge.html';
+    iframe.src = expectedOrigin + '/cart-bridge';
     iframe.setAttribute('aria-hidden', 'true');
     iframe.setAttribute('tabindex', '-1');
     iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
