@@ -5,7 +5,7 @@
  * (Duda, Magento, etc.) with a single line:
  *
  *   <script src="https://YOUR-USER.github.io/menu/menu.js"></script>
- *
+ * v2
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
  * (usually under a minute, sometimes a few minutes).
@@ -471,9 +471,16 @@
   }
 
   // ---- Duda cart badge --------------------------------------
-  // Cross-subdomain cart count retrieval. Requires Magento's cookie domain
-  // to be set to .pressrelease.com so the fetch includes Magento's session
-  // cookies. Response is JSON with a 'cart' section containing 'summary_count'.
+  // Cross-subdomain cart count retrieval using a hidden iframe + postMessage.
+  //
+  // Why this approach: a direct fetch() from Duda to Magento is blocked by
+  // CORS (Magento doesn't send Access-Control-Allow-Origin headers). An
+  // iframe is same-origin with its src, so it can read Magento's localStorage
+  // cart data without CORS. The iframe then posts the count to Duda via
+  // window.postMessage(), which is designed for cross-origin comms.
+  //
+  // Requires a CMS page at /cart-bridge.html on Magento that executes the
+  // broadcast snippet (see documentation for the required HTML).
   function fetchAndShowDudaCartBadge() {
     var cartBtn = document.querySelector('#prc-menu-mount .cart-btn');
     if (!cartBtn) return;
@@ -511,32 +518,51 @@
       document.head.appendChild(badgeStyle);
     }
 
-    // Hit Magento's section-load endpoint. Because cookies are now shared
-    // on .pressrelease.com, this request is authenticated as the same user.
-    var endpoint = 'https://checkout.pressrelease.com/customer/section/load/?sections=cart&update_section_id=false';
-    fetch(endpoint, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Accept': 'application/json' }
-    }).then(function (res) {
-      if (!res.ok) throw new Error('Cart fetch failed: ' + res.status);
-      return res.json();
-    }).then(function (data) {
-      var count = 0;
-      if (data && data.cart && typeof data.cart.summary_count !== 'undefined') {
-        count = parseInt(data.cart.summary_count, 10) || 0;
-      }
+    // Set up a postMessage listener BEFORE creating the iframe, so we don't
+    // miss early messages.
+    var expectedOrigin = 'https://checkout.pressrelease.com';
+    function handleCartMessage(event) {
+      // Security: only trust messages from the Magento origin
+      if (event.origin !== expectedOrigin) return;
+      // Security: only process our specific message shape
+      if (!event.data || event.data.type !== 'prc-cart-count') return;
+
+      var count = parseInt(event.data.count, 10) || 0;
+      // Remove any existing badge (in case cart changed)
+      var existing = cartBtn.querySelector('.prc-cart-badge');
+      if (existing) existing.remove();
       if (count > 0) {
         var badge = document.createElement('span');
         badge.className = 'prc-cart-badge';
         badge.textContent = count > 99 ? '99+' : String(count);
         cartBtn.appendChild(badge);
       }
-    }).catch(function (err) {
-      // Silent failure - the cart icon just shows no badge.
-      // Common reasons: CORS blocked, user has no session, network error.
-      // Uncomment for debugging: console.warn('[PRC menu] cart badge fetch failed:', err);
+    }
+    window.addEventListener('message', handleCartMessage, false);
+
+    // Create hidden iframe pointing at the Magento cart-bridge page.
+    // The iframe runs same-origin with Magento so it can read cart localStorage,
+    // and it posts the count back to us via postMessage.
+    var iframe = document.createElement('iframe');
+    iframe.src = expectedOrigin + '/cart-bridge.html';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.setAttribute('tabindex', '-1');
+    iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
+    // Safety timeout: if iframe never responds after 5s, give up and remove it
+    var cleanupTimer = setTimeout(function () {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      window.removeEventListener('message', handleCartMessage, false);
+    }, 5000);
+    iframe.addEventListener('load', function () {
+      // Give the iframe's script a moment to run then clean up
+      setTimeout(function () {
+        clearTimeout(cleanupTimer);
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        // Leave the message listener attached in case a delayed message arrives,
+        // but it will be garbage collected when the page unloads.
+      }, 1500);
     });
+    document.body.appendChild(iframe);
   }
 
   function relocateMagentoCart() {
