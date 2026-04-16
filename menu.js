@@ -11,6 +11,7 @@
  * (usually under a minute, sometimes a few minutes).
  * ============================================================ */
 
+
 (function () {
   'use strict';
 
@@ -167,6 +168,28 @@
   }
   .prc-nav-container .login-btn { background-color: transparent !important; color: #000000 !important; }
   .prc-nav-container .login-btn:hover { color: #ff3300 !important; }
+  .prc-nav-container .cart-btn {
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 15px !important;
+    margin-left: 10px !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    background-color: transparent !important;
+    border: 1px solid #ff3300 !important;
+    border-radius: 4px !important;
+    transition: all 0.3s ease !important;
+    white-space: nowrap;
+  }
+  .prc-nav-container .cart-btn:hover {
+    background-color: #ff3300 !important;
+    color: #ffffff !important;
+  }
+  .prc-nav-container .cart-btn i { margin-right: 6px !important; }
+  .prc-nav-container.scrolled .cart-btn { color: #ffffff !important; border-color: #ffffff !important; }
+  .prc-nav-container.scrolled .cart-btn:hover { background-color: #ffffff !important; color: #ff3300 !important; }
   .prc-nav-container .press-btn i,
   .prc-nav-container .login-btn i { margin-left: 8px !important; }
   .prc-nav-container .logo img.white-logo {
@@ -250,6 +273,9 @@
         <div class="action-buttons">
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
             Login <i class="fas fa-user-circle"></i>
+          </a>
+          <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn">
+            <i class="fas fa-shopping-cart"></i> Cart
           </a>
           <a href="${B}/get-started" class="press-btn">
             Purchase Now <i class="fas fa-sign-in-alt"></i>
