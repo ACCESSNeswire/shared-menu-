@@ -463,106 +463,10 @@
     // be ready when our script first runs.
     if (isMagento) {
       relocateMagentoCart();
-    } else {
-      // Off-Magento (e.g., Duda): fetch the live cart count from Magento
-      // using the shared-cookie session, and paint a badge on the cart icon.
-      fetchAndShowDudaCartBadge();
     }
-  }
-
-  // ---- Duda cart badge --------------------------------------
-  // Cross-subdomain cart count retrieval using a hidden iframe + postMessage.
-  //
-  // Why this approach: a direct fetch() from Duda to Magento is blocked by
-  // CORS (Magento doesn't send Access-Control-Allow-Origin headers). An
-  // iframe is same-origin with its src, so it can read Magento's localStorage
-  // cart data without CORS. The iframe then posts the count to Duda via
-  // window.postMessage(), which is designed for cross-origin comms.
-  //
-  // Requires a CMS page at /cart-bridge.html on Magento that executes the
-  // broadcast snippet (see documentation for the required HTML).
-  function fetchAndShowDudaCartBadge() {
-    var cartBtn = document.querySelector('#prc-menu-mount .cart-btn');
-    if (!cartBtn) return;
-
-    // Remove any stale badge from previous page loads
-    var oldBadge = cartBtn.querySelector('.prc-cart-badge');
-    if (oldBadge) oldBadge.remove();
-
-    // Inject the badge CSS once
-    if (!document.querySelector('style[data-prc-badge]')) {
-      var badgeStyle = document.createElement('style');
-      badgeStyle.setAttribute('data-prc-badge', 'true');
-      badgeStyle.textContent = `
-        .prc-nav-container .cart-btn { position: relative !important; }
-        .prc-nav-container .cart-btn .prc-cart-badge {
-          position: absolute !important;
-          top: -4px !important;
-          right: -4px !important;
-          min-width: 20px !important;
-          height: 20px !important;
-          padding: 0 5px !important;
-          background: #ff3300 !important;
-          color: #fff !important;
-          border-radius: 10px !important;
-          font-size: 11px !important;
-          font-weight: 700 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          line-height: 1 !important;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
-          pointer-events: none !important;
-        }
-      `;
-      document.head.appendChild(badgeStyle);
-    }
-
-    // Set up a postMessage listener BEFORE creating the iframe, so we don't
-    // miss early messages.
-    var expectedOrigin = 'https://checkout.pressrelease.com';
-    function handleCartMessage(event) {
-      // Security: only trust messages from the Magento origin
-      if (event.origin !== expectedOrigin) return;
-      // Security: only process our specific message shape
-      if (!event.data || event.data.type !== 'prc-cart-count') return;
-
-      var count = parseInt(event.data.count, 10) || 0;
-      // Remove any existing badge (in case cart changed)
-      var existing = cartBtn.querySelector('.prc-cart-badge');
-      if (existing) existing.remove();
-      if (count > 0) {
-        var badge = document.createElement('span');
-        badge.className = 'prc-cart-badge';
-        badge.textContent = count > 99 ? '99+' : String(count);
-        cartBtn.appendChild(badge);
-      }
-    }
-    window.addEventListener('message', handleCartMessage, false);
-
-    // Create hidden iframe pointing at the Magento cart-bridge page.
-    // The iframe runs same-origin with Magento so it can read cart localStorage,
-    // and it posts the count back to us via postMessage.
-    var iframe = document.createElement('iframe');
-    iframe.src = expectedOrigin + '/cart-bridge';
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.setAttribute('tabindex', '-1');
-    iframe.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
-    // Safety timeout: if iframe never responds after 5s, give up and remove it
-    var cleanupTimer = setTimeout(function () {
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      window.removeEventListener('message', handleCartMessage, false);
-    }, 5000);
-    iframe.addEventListener('load', function () {
-      // Give the iframe's script a moment to run then clean up
-      setTimeout(function () {
-        clearTimeout(cleanupTimer);
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        // Leave the message listener attached in case a delayed message arrives,
-        // but it will be garbage collected when the page unloads.
-      }, 1500);
-    });
-    document.body.appendChild(iframe);
+    // On non-Magento pages (Duda, etc.): cart icon stays as a simple link
+    // pointing to the Magento cart page. No live count badge - users click
+    // and go to Magento to see their cart.
   }
 
   function relocateMagentoCart() {
