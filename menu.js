@@ -4,7 +4,7 @@
  * Single source of truth for the site header. Load on any site
  * (Duda, Magento, etc.) with a single line:
  *
- *   <script src="https://accessneswire.github.io/shared-menu-/menu.js"></script>
+ *   <script src="https://YOUR-USER.github.io/menu/menu.js"></script>
  *
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
@@ -203,6 +203,41 @@
   style.setAttribute('data-prc-menu', 'true');
   style.textContent = css;
   document.head.appendChild(style);
+
+  // ---- 2b. Magento detection & duplicate-header hiding -------
+  // On Magento pages, we want to hide the existing theme header so we
+  // don't show two menus stacked on top of each other. But we MUST keep
+  // Magento's mini-cart DOM element alive and functional so its JavaScript
+  // (item count, slide-out popup, live updates) continues to work - we
+  // just make it visually invisible. Users will use the cart icon in our
+  // shared menu instead, which links directly to /checkout/cart/.
+  var isMagento = typeof window.checkout !== 'undefined'
+               || !!document.querySelector('body[class*="cms-"], body[class*="catalog-"], body[class*="checkout-"]');
+  if (isMagento) {
+    var magentoHideCSS = document.createElement('style');
+    magentoHideCSS.setAttribute('data-prc-magento-hide', 'true');
+    magentoHideCSS.textContent = `
+      /* Hide the top panel/announcement bar */
+      .page-header > .panel.wrapper { display: none !important; }
+      /* Hide nav sections (the mobile/responsive menu container) */
+      .page-header .sections.nav-sections { display: none !important; }
+      /* Hide the custom main-header built by the theme */
+      header.main-header { display: none !important; }
+      /* Hide the standard Magento header content row if present */
+      .page-header .header.content { display: none !important; }
+      /* But KEEP the minicart element in the DOM - just visually hidden
+         so Magento's JS (which watches for DOM elements) keeps working */
+      .minicart-wrapper {
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        visibility: hidden !important;
+      }
+      /* Remove extra spacing left behind by hidden header elements */
+      .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; }
+    `;
+    document.head.appendChild(magentoHideCSS);
+  }
 
   // ---- 3. Build menu HTML (absolute URLs so it works on any subdomain) ----
   var B = SITE_BASE;
