@@ -229,19 +229,28 @@
       /* Remove extra spacing from stripped-out header elements */
       .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; }
 
-      /* Force our shared menu to span the full width of the viewport,
-         ignoring any Magento wrapper width constraints. */
-      #prc-menu-mount,
-      #prc-menu-mount .prc-nav-container {
-        width: 100vw !important;
-        max-width: 100vw !important;
-        margin-left: calc(50% - 50vw) !important;
-        margin-right: calc(50% - 50vw) !important;
+      /* Force our shared menu to span the full width of the viewport.
+         We use position:relative with a left offset that accounts for the
+         distance between the mount and the viewport edge. Using 100vw with
+         negative margins caused content to be clipped on the left on some
+         Magento layouts. */
+      #prc-menu-mount {
+        width: 100% !important;
+        max-width: 100% !important;
       }
+      #prc-menu-mount .prc-nav-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      /* The Magento CMS page wraps content in a <main class="page-main">
+         with padding. Neutralize that padding ABOVE our menu by pulling the
+         page-main's top to 0 and letting our menu sit flush. */
+      .cms-menu-test .page-main,
+      .page-main { padding-top: 0 !important; }
 
       /* When Magento's native minicart is relocated into our menu slot,
          restore its visibility and strip theme styling that would make it
-         look wrong in our menu. */
+         look wrong in our menu. NO circle/border - just a clean icon. */
       #prc-menu-mount .minicart-wrapper {
         position: static !important;
         left: auto !important;
@@ -249,27 +258,27 @@
         visibility: visible !important;
         margin-left: 10px !important;
       }
-      /* Style the relocated minicart to match our cart button look */
+      /* Style the relocated minicart as a clean icon-only button */
       #prc-menu-mount .minicart-wrapper .action.showcart {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         width: 44px !important;
         height: 44px !important;
-        border: 1px solid #ff3300 !important;
-        border-radius: 50% !important;
+        border: none !important;
+        background: transparent !important;
         color: #000 !important;
         text-decoration: none !important;
         position: relative !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        transition: color 0.3s ease !important;
+      }
+      #prc-menu-mount .minicart-wrapper .action.showcart:hover,
+      #prc-menu-mount .minicart-wrapper .action.showcart:hover::before {
+        color: #ff3300 !important;
         background: transparent !important;
-        transition: all 0.3s ease !important;
-      }
-      #prc-menu-mount .minicart-wrapper .action.showcart:hover {
-        background: #ff3300 !important;
-      }
-      #prc-menu-mount .minicart-wrapper .action.showcart:hover::before,
-      #prc-menu-mount .minicart-wrapper .action.showcart:hover .text {
-        color: #fff !important;
       }
       /* Hide the default "My Cart" text label - we want icon only */
       #prc-menu-mount .minicart-wrapper .action.showcart .text {
@@ -277,21 +286,21 @@
         width: 1px !important; height: 1px !important;
         overflow: hidden !important; clip: rect(0,0,0,0) !important;
       }
-      /* Magento uses a pseudo-element icon font for the cart icon - ensure it shows */
+      /* The cart icon itself (Magento uses an icon font pseudo-element) */
       #prc-menu-mount .minicart-wrapper .action.showcart::before {
-        font-size: 18px !important;
-        color: #000 !important;
+        font-size: 22px !important;
+        color: inherit !important;
         line-height: 1 !important;
         margin: 0 !important;
       }
-      /* Item count badge - position it nicely on the top-right of the icon */
+      /* Item count badge - positioned on the top-right of the icon */
       #prc-menu-mount .minicart-wrapper .action.showcart .counter.qty {
         position: absolute !important;
-        top: -6px !important;
-        right: -6px !important;
+        top: -4px !important;
+        right: -4px !important;
         min-width: 20px !important;
         height: 20px !important;
-        padding: 0 4px !important;
+        padding: 0 5px !important;
         background: #ff3300 !important;
         color: #fff !important;
         border-radius: 10px !important;
@@ -302,6 +311,7 @@
         justify-content: center !important;
         line-height: 1 !important;
         margin: 0 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
       }
       #prc-menu-mount .minicart-wrapper .action.showcart .counter.qty.empty {
         display: none !important;
@@ -398,31 +408,38 @@
   `;
 
   // ---- 4. Mount the menu ------------------------------------
-  // Strategy: render the menu RIGHT NEXT TO the <script> tag that loaded
-  // this file. That way, on Duda the menu appears inside the HTML widget
-  // exactly where it was before, without shifting any page content.
-  // Only fall back to <body> injection if we absolutely can't find our script.
+  // Strategy differs by platform:
+  //   - On Duda: render right next to the <script> tag so the menu sits
+  //     inside the HTML widget where the publisher placed it.
+  //   - On Magento: render at the TOP of <body>, ignoring where the CMS
+  //     block was placed. This avoids getting trapped inside Magento's
+  //     narrow content column which clips the menu.
   function mountMenu() {
     var mount = document.getElementById(MOUNT_ID);
 
     if (!mount) {
-      // Try to find the <script> tag that loaded this file
-      var scripts = document.querySelectorAll('script[src*="menu.js"]');
-      var thisScript = scripts[scripts.length - 1]; // last one is usually ours
-
       mount = document.createElement('div');
       mount.id = MOUNT_ID;
 
-      if (thisScript && thisScript.parentNode) {
-        // Insert the menu right after our own <script> tag - this keeps it
-        // inside the Duda HTML widget / Magento CMS block exactly where the
-        // publisher placed the script, so page layout isn't disturbed.
-        thisScript.parentNode.insertBefore(mount, thisScript.nextSibling);
-      } else if (document.body.firstChild) {
-        // Fallback: top of <body>
-        document.body.insertBefore(mount, document.body.firstChild);
+      if (isMagento && document.body) {
+        // Magento: top of body, escape the content column entirely
+        if (document.body.firstChild) {
+          document.body.insertBefore(mount, document.body.firstChild);
+        } else {
+          document.body.appendChild(mount);
+        }
       } else {
-        document.body.appendChild(mount);
+        // Non-Magento (Duda etc.): render next to the <script> tag
+        var scripts = document.querySelectorAll('script[src*="menu.js"]');
+        var thisScript = scripts[scripts.length - 1];
+
+        if (thisScript && thisScript.parentNode) {
+          thisScript.parentNode.insertBefore(mount, thisScript.nextSibling);
+        } else if (document.body.firstChild) {
+          document.body.insertBefore(mount, document.body.firstChild);
+        } else {
+          document.body.appendChild(mount);
+        }
       }
     }
     mount.innerHTML = menuHTML;
