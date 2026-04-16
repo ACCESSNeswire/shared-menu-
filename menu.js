@@ -4,13 +4,12 @@
  * Single source of truth for the site header. Load on any site
  * (Duda, Magento, etc.) with a single line:
  *
- *   <script src="https://accessneswire.github.io/shared-menu-/menu.js"></script>
+ *   <script src="https://YOUR-USER.github.io/menu/menu.js"></script>
  *
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
  * (usually under a minute, sometimes a few minutes).
  * ============================================================ */
-
 
 (function () {
   'use strict';
@@ -171,23 +170,25 @@
   .prc-nav-container .cart-btn {
     display: flex !important;
     align-items: center !important;
-    padding: 10px 15px !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
     margin-left: 10px !important;
     text-decoration: none !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
+    font-size: 18px !important;
     color: #000000 !important;
     background-color: transparent !important;
     border: 1px solid #ff3300 !important;
-    border-radius: 4px !important;
+    border-radius: 50% !important;
     transition: all 0.3s ease !important;
-    white-space: nowrap;
   }
   .prc-nav-container .cart-btn:hover {
     background-color: #ff3300 !important;
     color: #ffffff !important;
+    padding: 0 !important;
   }
-  .prc-nav-container .cart-btn i { margin-right: 6px !important; }
+  .prc-nav-container .cart-btn i { margin: 0 !important; }
   .prc-nav-container.scrolled .cart-btn { color: #ffffff !important; border-color: #ffffff !important; }
   .prc-nav-container.scrolled .cart-btn:hover { background-color: #ffffff !important; color: #ff3300 !important; }
   .prc-nav-container .press-btn i,
@@ -274,11 +275,11 @@
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
             Login <i class="fas fa-user-circle"></i>
           </a>
-          <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn">
-            <i class="fas fa-shopping-cart"></i> Cart
-          </a>
           <a href="${B}/get-started" class="press-btn">
             Purchase Now <i class="fas fa-sign-in-alt"></i>
+          </a>
+          <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn" aria-label="Cart" title="Cart">
+            <i class="fas fa-shopping-cart"></i>
           </a>
         </div>
       </div>
@@ -286,13 +287,28 @@
   `;
 
   // ---- 4. Mount the menu ------------------------------------
+  // Strategy: render the menu RIGHT NEXT TO the <script> tag that loaded
+  // this file. That way, on Duda the menu appears inside the HTML widget
+  // exactly where it was before, without shifting any page content.
+  // Only fall back to <body> injection if we absolutely can't find our script.
   function mountMenu() {
     var mount = document.getElementById(MOUNT_ID);
+
     if (!mount) {
+      // Try to find the <script> tag that loaded this file
+      var scripts = document.querySelectorAll('script[src*="menu.js"]');
+      var thisScript = scripts[scripts.length - 1]; // last one is usually ours
+
       mount = document.createElement('div');
       mount.id = MOUNT_ID;
-      // Insert at the very top of <body>
-      if (document.body.firstChild) {
+
+      if (thisScript && thisScript.parentNode) {
+        // Insert the menu right after our own <script> tag - this keeps it
+        // inside the Duda HTML widget / Magento CMS block exactly where the
+        // publisher placed the script, so page layout isn't disturbed.
+        thisScript.parentNode.insertBefore(mount, thisScript.nextSibling);
+      } else if (document.body.firstChild) {
+        // Fallback: top of <body>
         document.body.insertBefore(mount, document.body.firstChild);
       } else {
         document.body.appendChild(mount);
