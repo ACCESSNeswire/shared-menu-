@@ -4,7 +4,7 @@
  * Single source of truth for the site header. Load on any site
  * (Duda, Magento, etc.) with a single line:
  *
- *   <script src="https://ACCESSNewswire-anw.github.io/shared-menu-/menu.js"></script>
+ *   <script src="https://accessneswire.github.io/shared-menu-/menu.js"></script>
  *
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
