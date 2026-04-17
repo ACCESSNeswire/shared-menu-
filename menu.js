@@ -415,7 +415,7 @@
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
             Login <i class="fas fa-user-circle"></i>
           </a>
-          <a href="https://checkout.pressrelease.com/checkout/" class="press-btn">
+          <a href="https://checkout.pressrelease.com/checkout" class="press-btn">
             Purchase Now<i class="fas fa-sign-in-alt"></i>
           </a>
           <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn" aria-label="Cart" title="Cart">
