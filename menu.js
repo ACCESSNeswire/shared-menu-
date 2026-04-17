@@ -238,7 +238,15 @@
       .breadcrumbs, .page-header + .breadcrumbs, nav.breadcrumbs { display: none !important; }
 
       /* Remove extra spacing from stripped-out header elements */
-      .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; }
+      .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
+      /* Collapse the empty header container so there's no blank space above content */
+      .page-wrapper > .page-header:empty,
+      .page-wrapper > .page-header { background: none !important; }
+
+      /* Reduce leftover top padding on the main content area */
+      .page-main { padding-top: 20px !important; }
+      body.checkout-cart-index .page-main,
+      body.checkout-index-index .page-main { padding-top: 0 !important; }
 
       /* Force our shared menu to span the full width of the viewport.
          We use position:relative with a left offset that accounts for the
@@ -407,7 +415,7 @@
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
             Login <i class="fas fa-user-circle"></i>
           </a>
-          <a href="https://checkout.pressrelease.com/checkout" class="press-btn">
+          <a href="${B}/get-started" class="press-btn">
             Purchase Now <i class="fas fa-sign-in-alt"></i>
           </a>
           <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn" aria-label="Cart" title="Cart">
