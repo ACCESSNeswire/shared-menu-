@@ -9,19 +9,23 @@
  * To update the menu, edit this file, commit, and push. Both
  * sites will reflect the change within GitHub Pages' cache TTL
  * (usually under a minute, sometimes a few minutes).
+ *
+ * MOBILE: Below 1024px viewport, the desktop menu collapses
+ * into a hamburger drawer. Dropdowns become tap-to-expand
+ * accordions. Action buttons move into the drawer footer.
  * ============================================================ */
 
 (function () {
   'use strict';
 
   // ---- Config ------------------------------------------------
-  // If the main marketing site ever moves, change this one line.
   var SITE_BASE = 'https://www.pressrelease.com';
-
-  // Where the menu should render. If a <div id="prc-menu-mount">
-  // exists on the page, we'll use it. Otherwise we inject at the
-  // top of <body> so the menu always appears above page content.
   var MOUNT_ID = 'prc-menu-mount';
+  var MOBILE_BREAKPOINT = 1024; // px — below this we switch to mobile nav
+
+  function isMobileView() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
 
   // ---- 1. Inject Font Awesome (if not already present) -------
   if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -197,6 +201,193 @@
     filter: brightness(0) invert(1);
     transition: filter 0.3s ease;
   }
+
+  /* Hamburger button - hidden on desktop, shown on mobile via media query */
+  .prc-nav-container .hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0 !important;
+    margin-left: 8px;
+    background: transparent !important;
+    border: none;
+    color: #000;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .prc-nav-container .hamburger:hover { background: transparent !important; }
+  .prc-nav-container.scrolled .hamburger { color: #fff; }
+  .prc-nav-container.mobile-open .hamburger { color: #000; }
+
+  /* Mobile action buttons inside drawer - hidden on desktop */
+  .prc-nav-container .mobile-action-buttons { display: none; }
+
+  /* ============================================================
+     MOBILE BREAKPOINT (≤1024px)
+     ============================================================ */
+  @media (max-width: ${MOBILE_BREAKPOINT}px) {
+    .prc-nav-container .navbar {
+      padding: 0 15px !important;
+      height: 64px !important;
+      background: #fff !important;
+      position: relative !important;
+      z-index: 10001 !important;
+    }
+    .prc-nav-container.scrolled .navbar { background: #fff !important; }
+    .prc-nav-container .logo { width: 150px !important; }
+
+    /* Hide desktop login + purchase buttons; cart stays visible */
+    .prc-nav-container .action-buttons > .login-btn,
+    .prc-nav-container .action-buttons > .press-btn { display: none !important; }
+
+    /* Show hamburger */
+    .prc-nav-container .hamburger { display: flex !important; }
+
+    /* Turn mega-menu into a slide-in drawer */
+    .prc-nav-container .mega-menu {
+      position: fixed !important;
+      top: 64px !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      background: #fff !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      overflow-y: auto !important;
+      padding: 10px 20px 30px !important;
+      z-index: 10000 !important;
+      transform: translateX(-100%) !important;
+      transition: transform 0.3s ease !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    .prc-nav-container.mobile-open .mega-menu {
+      transform: translateX(0) !important;
+    }
+
+    /* Stack menu items vertically */
+    .prc-nav-container .menu {
+      flex-direction: column !important;
+      gap: 0 !important;
+      width: 100% !important;
+    }
+    .prc-nav-container .menu-item {
+      border-bottom: 1px solid #eee !important;
+      width: 100% !important;
+      position: static !important;
+    }
+    .prc-nav-container .menu-item > a {
+      padding: 15px 5px !important;
+      font-size: 16px !important;
+      color: #000 !important;
+      background: transparent !important;
+    }
+    /* Don't paint the bar red on tap-hover for mobile - just color shift */
+    .prc-nav-container .menu-item > a:hover,
+    .prc-nav-container .menu-item.hover > a {
+      background: transparent !important;
+      color: #ff3300 !important;
+    }
+    .prc-nav-container .has-dropdown > a::after {
+      float: right !important;
+      margin-top: 7px !important;
+    }
+    .prc-nav-container .menu-item.mobile-expanded > a::after {
+      transform: rotate(180deg) !important;
+    }
+
+    /* Dropdowns become inline accordions */
+    .prc-nav-container .dropdown,
+    .prc-nav-container .dropdown-size-small,
+    .prc-nav-container .dropdown-size-large {
+      position: static !important;
+      transform: none !important;
+      top: auto !important;
+      left: auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 5px 0 15px 15px !important;
+      background: #fafafa !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      display: none !important;
+      transition: none !important;
+    }
+    .prc-nav-container .menu-item.mobile-expanded .dropdown {
+      display: block !important;
+    }
+    /* Don't auto-open on desktop-style .hover class on mobile */
+    .prc-nav-container .menu-item.hover .dropdown { display: none !important; }
+    .prc-nav-container .menu-item.hover.mobile-expanded .dropdown { display: block !important; }
+
+    .prc-nav-container .dropdown-grid {
+      display: block !important;
+      grid-template-columns: 1fr !important;
+    }
+    .prc-nav-container .dropdown-column { margin-bottom: 10px !important; }
+    .prc-nav-container .dropdown-column .dropdown-heading {
+      font-size: 13px !important;
+      margin-top: 8px !important;
+      margin-bottom: 8px !important;
+      padding-bottom: 6px !important;
+    }
+    .prc-nav-container .dropdown-column a {
+      padding: 10px 0 !important;
+      color: #000850 !important;
+    }
+
+    /* Action buttons at bottom of drawer */
+    .prc-nav-container .mobile-action-buttons {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      margin-top: 25px !important;
+      padding-top: 20px !important;
+      border-top: 1px solid #eee !important;
+    }
+    .prc-nav-container .mobile-action-buttons a {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 14px 20px !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      border-radius: 4px !important;
+      text-decoration: none !important;
+      white-space: nowrap !important;
+    }
+    .prc-nav-container .mobile-action-buttons .login-btn {
+      background: transparent !important;
+      border: 1px solid #ddd !important;
+      color: #000 !important;
+      margin: 0 !important;
+    }
+    .prc-nav-container .mobile-action-buttons .press-btn {
+      background: #ff3300 !important;
+      color: #fff !important;
+      margin: 0 !important;
+      padding: 14px 20px !important;
+    }
+    .prc-nav-container .mobile-action-buttons a i { margin-left: 8px !important; }
+
+    /* On mobile, don't let scroll logic flip colors to white over a drawer */
+    .prc-nav-container.scrolled .logo img.white-logo { filter: none !important; }
+    .prc-nav-container.scrolled a { color: #000 !important; }
+    .prc-nav-container.scrolled .menu-item > a:hover,
+    .prc-nav-container.scrolled .menu-item.hover > a {
+      background: transparent !important;
+      color: #ff3300 !important;
+    }
+  }
+
+  /* Body scroll lock when mobile drawer is open */
+  body.prc-mobile-menu-open { overflow: hidden !important; }
   `;
 
   var style = document.createElement('style');
@@ -205,21 +396,10 @@
   document.head.appendChild(style);
 
   // ---- 2b. Magento detection & integration -------------------
-  // On Magento pages we:
-  //   1. Hide the original Magento theme header (duplicate menu)
-  //   2. Hide Magento's breadcrumbs
-  //   3. Force our menu to span full width regardless of Magento's layout
-  //   4. Relocate Magento's native minicart widget into our menu's cart slot
-  //
-  // Strict detection: only true if we see Magento-specific globals or DOM
-  // markers that would never appear on Duda or other platforms. Generic
-  // body class matches (like [class*="cms-"]) are NOT used because Duda
-  // sometimes adds classes with those substrings, causing false positives.
   function detectMagento() {
     if (typeof window.checkout !== 'undefined' && window.checkout && window.checkout.baseUrl) return true;
     if (typeof window.BASE_URL !== 'undefined' && typeof window.LOCALE !== 'undefined') return true;
     if (document.querySelector('.minicart-wrapper[data-block="minicart"]')) return true;
-    // Fall back to looking for Magento's page-wrapper combined with its script signature
     if (document.querySelector('script[src*="/static/version"][src*="/mage/"]')) return true;
     return false;
   }
@@ -228,31 +408,17 @@
     var magentoHideCSS = document.createElement('style');
     magentoHideCSS.setAttribute('data-prc-magento-hide', 'true');
     magentoHideCSS.textContent = `
-      /* Hide original Magento header pieces */
       .page-header > .panel.wrapper { display: none !important; }
       .page-header .sections.nav-sections { display: none !important; }
       header.main-header { display: none !important; }
       .page-header .header.content { display: none !important; }
-
-      /* Hide breadcrumbs */
       .breadcrumbs, .page-header + .breadcrumbs, nav.breadcrumbs { display: none !important; }
-
-      /* Remove extra spacing from stripped-out header elements */
       .page-wrapper > .page-header { margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
-      /* Collapse the empty header container so there's no blank space above content */
       .page-wrapper > .page-header:empty,
       .page-wrapper > .page-header { background: none !important; }
-
-      /* Reduce leftover top padding on the main content area */
       .page-main { padding-top: 20px !important; }
       body.checkout-cart-index .page-main,
       body.checkout-index-index .page-main { padding-top: 0 !important; }
-
-      /* Force our shared menu to span the full width of the viewport.
-         We use position:relative with a left offset that accounts for the
-         distance between the mount and the viewport edge. Using 100vw with
-         negative margins caused content to be clipped on the left on some
-         Magento layouts. */
       #prc-menu-mount {
         width: 100% !important;
         max-width: 100% !important;
@@ -261,15 +427,8 @@
         width: 100% !important;
         max-width: 100% !important;
       }
-      /* The Magento CMS page wraps content in a <main class="page-main">
-         with padding. Neutralize that padding ABOVE our menu by pulling the
-         page-main's top to 0 and letting our menu sit flush. */
       .cms-menu-test .page-main,
       .page-main { padding-top: 0 !important; }
-
-      /* When Magento's native minicart is relocated into our menu slot,
-         restore its visibility and strip theme styling that would make it
-         look wrong in our menu. NO circle/border - just a clean icon. */
       #prc-menu-mount .minicart-wrapper {
         position: static !important;
         left: auto !important;
@@ -277,7 +436,6 @@
         visibility: visible !important;
         margin-left: 10px !important;
       }
-      /* Style the relocated minicart as a clean icon-only button */
       #prc-menu-mount .minicart-wrapper .action.showcart {
         display: flex !important;
         align-items: center !important;
@@ -299,20 +457,17 @@
         color: #ff3300 !important;
         background: transparent !important;
       }
-      /* Hide the default "My Cart" text label - we want icon only */
       #prc-menu-mount .minicart-wrapper .action.showcart .text {
         position: absolute !important;
         width: 1px !important; height: 1px !important;
         overflow: hidden !important; clip: rect(0,0,0,0) !important;
       }
-      /* The cart icon itself (Magento uses an icon font pseudo-element) */
       #prc-menu-mount .minicart-wrapper .action.showcart::before {
         font-size: 22px !important;
         color: inherit !important;
         line-height: 1 !important;
         margin: 0 !important;
       }
-      /* Item count badge - positioned on the top-right of the icon */
       #prc-menu-mount .minicart-wrapper .action.showcart .counter.qty {
         position: absolute !important;
         top: -4px !important;
@@ -336,15 +491,12 @@
         display: none !important;
       }
       #prc-menu-mount .minicart-wrapper .counter-label { display: none !important; }
-
-      /* If we've relocated the minicart, hide our own fallback cart button
-         so we don't end up with two cart icons. */
       #prc-menu-mount.has-magento-cart .cart-btn { display: none !important; }
     `;
     document.head.appendChild(magentoHideCSS);
   }
 
-  // ---- 3. Build menu HTML (absolute URLs so it works on any subdomain) ----
+  // ---- 3. Build menu HTML -----------------------------------
   var B = SITE_BASE;
   var menuHTML = `
     <div class="prc-nav-container">
@@ -410,6 +562,14 @@
               <a href="${B}/contact-us">Contact Us</a>
             </li>
           </ul>
+          <div class="mobile-action-buttons">
+            <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
+              Login <i class="fas fa-user-circle"></i>
+            </a>
+            <a href="https://checkout.pressrelease.com/checkout" class="press-btn">
+              Purchase Now <i class="fas fa-sign-in-alt"></i>
+            </a>
+          </div>
         </div>
         <div class="action-buttons">
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
@@ -421,18 +581,15 @@
           <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn" aria-label="Cart" title="Cart">
             <i class="fas fa-shopping-cart"></i>
           </a>
+          <button type="button" class="hamburger" aria-label="Open menu" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+          </button>
         </div>
       </div>
     </div>
   `;
 
   // ---- 4. Mount the menu ------------------------------------
-  // Strategy differs by platform:
-  //   - On Duda: render right next to the <script> tag so the menu sits
-  //     inside the HTML widget where the publisher placed it.
-  //   - On Magento: render at the TOP of <body>, ignoring where the CMS
-  //     block was placed. This avoids getting trapped inside Magento's
-  //     narrow content column which clips the menu.
   function mountMenu() {
     var mount = document.getElementById(MOUNT_ID);
 
@@ -441,14 +598,12 @@
       mount.id = MOUNT_ID;
 
       if (isMagento && document.body) {
-        // Magento: top of body, escape the content column entirely
         if (document.body.firstChild) {
           document.body.insertBefore(mount, document.body.firstChild);
         } else {
           document.body.appendChild(mount);
         }
       } else {
-        // Non-Magento (Duda etc.): render next to the <script> tag
         var scripts = document.querySelectorAll('script[src*="menu.js"]');
         var thisScript = scripts[scripts.length - 1];
 
@@ -465,21 +620,14 @@
 
     attachBehaviors();
 
-    // On Magento: try to relocate Magento's native minicart widget into our
-    // menu's cart slot. We retry for up to ~5 seconds because Magento's
-    // Knockout bindings initialize asynchronously and the element may not
-    // be ready when our script first runs.
     if (isMagento) {
       relocateMagentoCart();
     }
-    // On non-Magento pages (Duda, etc.): cart icon stays as a simple link
-    // pointing to the Magento cart page. No live count badge - users click
-    // and go to Magento to see their cart.
   }
 
   function relocateMagentoCart() {
     var attempts = 0;
-    var maxAttempts = 50; // 50 * 100ms = 5 seconds
+    var maxAttempts = 50;
     var interval = setInterval(function () {
       attempts++;
       var magentoCart = document.querySelector('.minicart-wrapper');
@@ -487,46 +635,113 @@
       var ourCartBtn = mount ? mount.querySelector('.cart-btn') : null;
 
       if (magentoCart && mount && ourCartBtn && !mount.contains(magentoCart)) {
-        // Insert Magento's cart widget right before our fallback cart button
         ourCartBtn.parentNode.insertBefore(magentoCart, ourCartBtn);
-        // Mark the mount so our CSS hides our fallback cart button
         mount.classList.add('has-magento-cart');
         clearInterval(interval);
       } else if (attempts >= maxAttempts) {
-        // Gave up - Magento minicart never materialized on this page.
-        // Our own fallback cart button stays visible as a backup.
         clearInterval(interval);
       }
     }, 100);
   }
 
-  // ---- 5. Attach hover + scroll behaviors -------------------
+  // ---- 5. Attach hover + scroll + mobile behaviors -----------
   function attachBehaviors() {
-    // Dropdown hover
+    var navContainer = document.querySelector('.prc-nav-container');
+    var hamburger = document.querySelector('.prc-nav-container .hamburger');
+
+    function closeMobileMenu() {
+      if (!navContainer) return;
+      navContainer.classList.remove('mobile-open');
+      document.body.classList.remove('prc-mobile-menu-open');
+      if (hamburger) {
+        hamburger.setAttribute('aria-expanded', 'false');
+        var icon = hamburger.querySelector('i');
+        if (icon) icon.className = 'fas fa-bars';
+      }
+      // Collapse any open mobile accordions
+      document.querySelectorAll('.prc-nav-container .menu-item.mobile-expanded').forEach(function (i) {
+        i.classList.remove('mobile-expanded');
+      });
+    }
+
+    // Hamburger toggle
+    if (hamburger) {
+      hamburger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var willOpen = !navContainer.classList.contains('mobile-open');
+        if (willOpen) {
+          navContainer.classList.add('mobile-open');
+          document.body.classList.add('prc-mobile-menu-open');
+          hamburger.setAttribute('aria-expanded', 'true');
+          var icon = hamburger.querySelector('i');
+          if (icon) icon.className = 'fas fa-times';
+        } else {
+          closeMobileMenu();
+        }
+      });
+    }
+
+    // Dropdown behavior: hover on desktop, tap-toggle on mobile
     var items = document.querySelectorAll('.prc-nav-container .has-dropdown');
     items.forEach(function (item) {
+      // Desktop hover
       item.addEventListener('mouseenter', function () {
+        if (isMobileView()) return;
         document.querySelectorAll('.prc-nav-container .menu-item.hover').forEach(function (i) {
           if (i !== item) i.classList.remove('hover');
         });
         item.classList.add('hover');
       });
       item.addEventListener('mouseleave', function () {
+        if (isMobileView()) return;
         item.classList.remove('hover');
+      });
+
+      // Mobile tap to expand/collapse
+      var trigger = null;
+      for (var c = 0; c < item.children.length; c++) {
+        if (item.children[c].tagName === 'A') { trigger = item.children[c]; break; }
+      }
+      if (trigger) {
+        trigger.addEventListener('click', function (e) {
+          if (!isMobileView()) return;
+          // These are placeholder anchors (href="#"), don't let them jump to top
+          e.preventDefault();
+          item.classList.toggle('mobile-expanded');
+        });
+      }
+    });
+
+    // Close mobile menu when user taps a real link
+    document.querySelectorAll('.prc-nav-container .mega-menu a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        if (!isMobileView()) return;
+        var href = a.getAttribute('href');
+        if (href && href !== '#') closeMobileMenu();
       });
     });
 
-    // Scroll-driven logo/nav color swap
+    // Reset to desktop state on resize above breakpoint
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (!isMobileView()) closeMobileMenu();
+      }, 100);
+    });
+
+    // Scroll-driven logo/nav color swap — desktop only
     window.addEventListener('scroll', function () {
+      if (isMobileView()) return;
       var logoImg = document.querySelector('.prc-nav-container .logo img');
-      var navContainer = document.querySelector('.prc-nav-container');
-      if (!logoImg || !navContainer) return;
+      var nc = document.querySelector('.prc-nav-container');
+      if (!logoImg || !nc) return;
       if (window.scrollY > 10) {
         logoImg.classList.add('white-logo');
-        navContainer.classList.add('scrolled');
+        nc.classList.add('scrolled');
       } else {
         logoImg.classList.remove('white-logo');
-        navContainer.classList.remove('scrolled');
+        nc.classList.remove('scrolled');
       }
     });
   }
