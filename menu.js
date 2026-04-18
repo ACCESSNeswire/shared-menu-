@@ -492,6 +492,73 @@
       }
       #prc-menu-mount .minicart-wrapper .counter-label { display: none !important; }
       #prc-menu-mount.has-magento-cart .cart-btn { display: none !important; }
+
+      /* ---- Hide Magento's native mobile hamburger (nav-toggle) ----
+         Magento themes render their own hamburger absolutely-positioned at
+         the top-left on mobile. The generic header rules above don't catch
+         it because it's outside .page-header in some themes. */
+      .nav-toggle,
+      .action.nav-toggle,
+      .page-wrapper > .nav-toggle,
+      header .nav-toggle,
+      body > .nav-toggle {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      /* Magento checkout also renders this "Sign In" link outside the
+         header we hide above. Kill it too. */
+      .page-wrapper .authentication-wrapper { display: none !important; }
+
+      /* ---- Keep the relocated minicart tight inside our flex row ----
+         Magento's theme CSS can give .minicart-wrapper absolute positioning,
+         floats, or generous widths that push our own hamburger off the
+         right edge. Pin it to a clean inline-flex box. */
+      #prc-menu-mount .minicart-wrapper {
+        position: static !important;
+        left: auto !important; right: auto !important;
+        top: auto !important; bottom: auto !important;
+        float: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        visibility: visible !important;
+        margin: 0 0 0 8px !important;
+        padding: 0 !important;
+        flex-shrink: 0 !important;
+        width: auto !important;
+        overflow: visible !important;
+        transform: none !important;
+      }
+
+      /* ---- Force our hamburger visible on Magento mobile ----
+         Defensive in case Magento's button resets fight our base styles. */
+      @media (max-width: 1024px) {
+        #prc-menu-mount .hamburger {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          width: 44px !important;
+          height: 44px !important;
+          min-width: 44px !important;
+          flex-shrink: 0 !important;
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          margin: 0 0 0 8px !important;
+          color: #000 !important;
+          font-size: 22px !important;
+          cursor: pointer !important;
+        }
+        /* Keep navbar on a single row so nothing wraps off-screen */
+        #prc-menu-mount .navbar {
+          flex-wrap: nowrap !important;
+          overflow: visible !important;
+        }
+        #prc-menu-mount .action-buttons {
+          margin-left: auto !important;
+          flex-wrap: nowrap !important;
+          flex-shrink: 0 !important;
+        }
+      }
     `;
     document.head.appendChild(magentoHideCSS);
   }
