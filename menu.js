@@ -202,25 +202,45 @@
     transition: filter 0.3s ease;
   }
 
-  /* Hamburger button - hidden on desktop, shown on mobile via media query */
+  /* Hamburger button - hidden on desktop, shown on mobile via media query.
+     Uses three plain <span> lines instead of a Font Awesome icon so it still
+     renders if FA fails to load on the page (e.g. CSP blocks cdnjs). */
   .prc-nav-container .hamburger {
     display: none;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 5px;
     width: 44px;
     height: 44px;
     padding: 0 !important;
     margin-left: 8px;
     background: transparent !important;
     border: none;
-    color: #000;
-    font-size: 22px;
     cursor: pointer;
     line-height: 1;
   }
   .prc-nav-container .hamburger:hover { background: transparent !important; }
-  .prc-nav-container.scrolled .hamburger { color: #fff; }
-  .prc-nav-container.mobile-open .hamburger { color: #000; }
+  .prc-nav-container .hamburger-line {
+    display: block !important;
+    width: 22px;
+    height: 2.5px;
+    background: #000;
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.2s ease, background-color 0.3s ease;
+  }
+  .prc-nav-container.scrolled .hamburger-line { background: #fff; }
+  .prc-nav-container.mobile-open .hamburger-line { background: #000; }
+  /* Animate the three lines into an X when the drawer is open */
+  .prc-nav-container.mobile-open .hamburger-line:nth-child(1) {
+    transform: translateY(7.5px) rotate(45deg);
+  }
+  .prc-nav-container.mobile-open .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+  .prc-nav-container.mobile-open .hamburger-line:nth-child(3) {
+    transform: translateY(-7.5px) rotate(-45deg);
+  }
 
   /* Mobile action buttons inside drawer - hidden on desktop */
   .prc-nav-container .mobile-action-buttons { display: none; }
@@ -649,7 +669,9 @@
             <i class="fas fa-shopping-cart"></i>
           </a>
           <button type="button" class="hamburger" aria-label="Open menu" aria-expanded="false">
-            <i class="fas fa-bars"></i>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
           </button>
         </div>
       </div>
@@ -722,8 +744,6 @@
       document.body.classList.remove('prc-mobile-menu-open');
       if (hamburger) {
         hamburger.setAttribute('aria-expanded', 'false');
-        var icon = hamburger.querySelector('i');
-        if (icon) icon.className = 'fas fa-bars';
       }
       // Collapse any open mobile accordions
       document.querySelectorAll('.prc-nav-container .menu-item.mobile-expanded').forEach(function (i) {
@@ -740,8 +760,6 @@
           navContainer.classList.add('mobile-open');
           document.body.classList.add('prc-mobile-menu-open');
           hamburger.setAttribute('aria-expanded', 'true');
-          var icon = hamburger.querySelector('i');
-          if (icon) icon.className = 'fas fa-times';
         } else {
           closeMobileMenu();
         }
