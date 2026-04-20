@@ -595,9 +595,6 @@
         </div>
         <div class="mega-menu">
           <ul class="menu">
-            <li class="menu-item">
-              <a href="${B}/ACCESS-verified">ACCESS Verified</a>
-            </li>
             <li class="menu-item has-dropdown">
               <a href="#">Use Cases</a>
               <div class="dropdown dropdown-size-large">
@@ -632,7 +629,9 @@
               <div class="dropdown dropdown-size-small">
                 <div class="dropdown-grid" style="grid-template-columns: 1fr;">
                   <div class="dropdown-column">
-                    <div class="dropdown-heading">Resources</div>
+                    <div class="dropdown-heading">Features</div>
+                    <a href="${B}/ACCESS-verified"><i class="fas fa-check-circle"></i>ACCESS Verified</a>
+                    <div class="dropdown-heading" style="margin-top: 20px;">Resources</div>
                     <a href="${B}/blog"><i class="fas fa-blog"></i>Blog</a>
                     <a href="${B}/home#cases"><i class="fas fa-trophy"></i>Success Stories</a>
                     <div class="dropdown-heading" style="margin-top: 20px;">Templates, Tips &amp; Tools</div>
