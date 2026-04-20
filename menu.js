@@ -629,14 +629,14 @@
               <div class="dropdown dropdown-size-small">
                 <div class="dropdown-grid" style="grid-template-columns: 1fr;">
                   <div class="dropdown-column">
-                    <div class="dropdown-heading">Features</div>
-                    <a href="${B}/ACCESS-verified"><i class="fas fa-check-circle"></i>ACCESS Verified</a>
-                    <div class="dropdown-heading" style="margin-top: 20px;">Resources</div>
+                    <div class="dropdown-heading">Resources</div>
                     <a href="${B}/blog"><i class="fas fa-blog"></i>Blog</a>
                     <a href="${B}/home#cases"><i class="fas fa-trophy"></i>Success Stories</a>
                     <div class="dropdown-heading" style="margin-top: 20px;">Templates, Tips &amp; Tools</div>
                     <a href="https://www.pressrelease.com/download/amplification-checklist"><i class="fas fa-check-square"></i>Amplification Checklist</a>
                     <a href="https://www.pressrelease.com/download/play-book"><i class="fas fa-book-open"></i>Small Business Play Book</a>
+                    <div class="dropdown-heading" style="margin-top: 20px;">Features</div>
+                    <a href="${B}/ACCESS-verified"><i class="fas fa-check-circle"></i>ACCESS Verified</a>
                   </div>
                 </div>
               </div>
