@@ -417,7 +417,7 @@
 
   // ---- 2b. Magento detection & integration -------------------
   function detectMagento() {
-    if (typeof window. !== 'undefined' && window. && window..baseUrl) return true;
+    if (typeof window.checkout !== 'undefined' && window.checkout && window.checkout.baseUrl) return true;
     if (typeof window.BASE_URL !== 'undefined' && typeof window.LOCALE !== 'undefined') return true;
     if (document.querySelector('.minicart-wrapper[data-block="minicart"]')) return true;
     if (document.querySelector('script[src*="/static/version"][src*="/mage/"]')) return true;
@@ -437,8 +437,8 @@
       .page-wrapper > .page-header:empty,
       .page-wrapper > .page-header { background: none !important; }
       .page-main { padding-top: 20px !important; }
-      body.-cart-index .page-main,
-      body.-index-index .page-main { padding-top: 0 !important; }
+      body.checkout-cart-index .page-main,
+      body.checkout-index-index .page-main { padding-top: 0 !important; }
       #prc-menu-mount {
         width: 100% !important;
         max-width: 100% !important;
@@ -525,7 +525,7 @@
         display: none !important;
         visibility: hidden !important;
       }
-      /* Magento  also renders this "Sign In" link outside the
+      /* Magento checkout also renders this "Sign In" link outside the
          header we hide above. Kill it too. */
       .page-wrapper .authentication-wrapper { display: none !important; }
 
@@ -652,7 +652,7 @@
             <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
               Login <i class="fas fa-user-circle"></i>
             </a>
-            <a href="https://.pressrelease.com//cart" class="press-btn">
+            <a href="https://checkout.pressrelease.com/checkout/cart" class="press-btn">
               Purchase Now <i class="fas fa-sign-in-alt"></i>
             </a>
           </div>
