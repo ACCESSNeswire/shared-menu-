@@ -19,6 +19,17 @@
  * with CSS `order`, scoped inside the mobile media query, so
  * the desktop bar always follows source order and is never
  * affected by changes made there.
+ *
+ * DRAWER RELOCATION: When the drawer opens on mobile it is
+ * moved to <body> and moved back on close. A CSS `transform`
+ * on ANY ancestor turns `position: fixed` into a containing
+ * block, which is what breaks full-screen drawers inside Duda
+ * headers. Relocating to <body> removes every possible
+ * transformed ancestor. Because the drawer then lives outside
+ * .prc-nav-container, every rule that styles drawer content is
+ * written against BOTH `.prc-nav-container ...` and
+ * `.prc-mega-menu ...`. The declarations in each pair are
+ * identical, so desktop rendering is unchanged.
  * ============================================================ */
 
 (function () {
@@ -28,6 +39,7 @@
   var SITE_BASE = 'https://www.pressrelease.com';
   var MOUNT_ID = 'prc-menu-mount';
   var MOBILE_BREAKPOINT = 1024; // px — below this we switch to mobile nav
+  var DRAWER_ANIM_MS = 320;     // must be >= the CSS transform transition
 
   /* ---- MOBILE DRAWER ORDER (mobile only) ---------------------
    * Keys match the data-nav attribute on each <li class="menu-item">.
@@ -40,34 +52,27 @@
     'pricing':   2,
     'resources': 3,
     'news':      4,
-    'contact':   5
+    'contact':   6
   };
 
   /* ---- MOBILE-ONLY NAV ITEMS ---------------------------------
    * Links that appear in the mobile drawer but NOT in the desktop
-   * bar. Leave empty until you have a confirmed live URL for each
-   * page — do not ship a guessed slug.
-   *
-   * Example once confirmed:
-   *   { label: 'About Us', href: SITE_BASE + '/about-us', order: 6 }
+   * bar. Slugs below were read off the live pressrelease.com nav.
+   * `order` slots them into the MOBILE_ORDER sequence above.
    */
   var MOBILE_EXTRA_LINKS = [
-    // { label: 'About Us', href: SITE_BASE + '/about-us', order: 6 },
+    { label: 'About Us',            href: SITE_BASE + '/about-us', order: 5 },
+    { label: 'Frequently Asked Questions', href: SITE_BASE + '/faqs', order: 7 }
   ];
 
   /* ---- MOBILE FOOTER LINKS (mobile only) ---------------------
-   * Small secondary/legal links pinned below the CTA buttons at
-   * the very bottom of the drawer. This is where Privacy Policy,
-   * Terms of Service and Editorial Content Guidelines belong —
-   * out of the primary nav, still reachable.
-   *
-   * Example once confirmed:
-   *   { label: 'Privacy Policy', href: SITE_BASE + '/privacy-policy' }
+   * Secondary/legal links pinned below the CTA buttons at the very
+   * bottom of the drawer — out of the primary nav, still reachable.
    */
   var MOBILE_FOOTER_LINKS = [
-    // { label: 'Privacy Policy', href: SITE_BASE + '/privacy-policy' },
-    // { label: 'Terms of Service', href: SITE_BASE + '/terms-of-service' },
-    // { label: 'Editorial Content Guidelines', href: SITE_BASE + '/editorial-content-guidelines' },
+    { label: 'Privacy Policy',              href: SITE_BASE + '/privacy-policy' },
+    { label: 'Terms of Service',            href: SITE_BASE + '/terms-of-service' },
+    { label: 'Editorial Content Guidelines', href: SITE_BASE + '/editorial-content-guidelines' }
   ];
 
   function isMobileView() {
@@ -89,19 +94,22 @@
 
   // ---- 1b. Build the mobile-only order rules from config -----
   var mobileOrderCSS = Object.keys(MOBILE_ORDER).map(function (key) {
-    return '.prc-nav-container .menu-item[data-nav="' + key + '"] { order: ' +
-      MOBILE_ORDER[key] + ' !important; }';
+    return '.prc-nav-container .menu-item[data-nav="' + key + '"],\n    ' +
+           '.prc-mega-menu .menu-item[data-nav="' + key + '"] { order: ' +
+           MOBILE_ORDER[key] + ' !important; }';
   }).join('\n    ');
 
   var mobileExtraOrderCSS = MOBILE_EXTRA_LINKS.map(function (link, i) {
     var ord = (typeof link.order === 'number') ? link.order : (100 + i);
-    return '.prc-nav-container .menu-item[data-nav="extra-' + i + '"] { order: ' +
-      ord + ' !important; }';
+    return '.prc-nav-container .menu-item[data-nav="extra-' + i + '"],\n    ' +
+           '.prc-mega-menu .menu-item[data-nav="extra-' + i + '"] { order: ' +
+           ord + ' !important; }';
   }).join('\n    ');
 
   // ---- 2. Inject menu styles --------------------------------
   var css = `
-  .prc-nav-container { font-family: 'Poppins', sans-serif !important; }
+  .prc-nav-container,
+  .prc-mega-menu { font-family: 'Poppins', sans-serif !important; }
   .prc-nav-container .navbar {
     display: flex !important;
     align-items: center !important;
@@ -112,7 +120,8 @@
   .prc-nav-container .logo { width: 220px !important; flex-shrink: 0 !important; }
   .prc-nav-container .logo img { width: 100% !important; height: auto !important; display: block !important; }
   .prc-nav-container .mega-menu { flex-grow: 1; display: flex; justify-content: center; }
-  .prc-nav-container a {
+  .prc-nav-container a,
+  .prc-mega-menu a {
     color: #000000 !important;
     text-decoration: none !important;
     display: block !important;
@@ -120,7 +129,8 @@
     transition: all 0.3s ease !important;
   }
   .prc-nav-container.scrolled a { color: #ffffff !important; }
-  .prc-nav-container a:hover {
+  .prc-nav-container a:hover,
+  .prc-mega-menu a:hover {
     color: #FF3300 !important;
     background-color: #FF330030 !important;
     padding: 10px 10px !important;
@@ -131,14 +141,16 @@
     background-color: rgba(255, 255, 255, 0.15) !important;
   }
   .prc-nav-container .action-buttons { display: flex !important; align-items: center !important; flex-shrink: 0 !important; }
-  .prc-nav-container .menu {
+  .prc-nav-container .menu,
+  .prc-mega-menu .menu {
     list-style: none !important;
     display: flex !important;
     margin: 0 !important;
     padding: 0 !important;
     gap: 30px !important;
   }
-  .prc-nav-container .menu-item { position: relative !important; }
+  .prc-nav-container .menu-item,
+  .prc-mega-menu .menu-item { position: relative !important; }
   .prc-nav-container .menu > a {
     display: block !important;
     padding: 10px 15px !important;
@@ -148,7 +160,8 @@
     text-decoration: none !important;
     transition: all 0.3s ease !important;
   }
-  .prc-nav-container .has-dropdown > a::after {
+  .prc-nav-container .has-dropdown > a::after,
+  .prc-mega-menu .has-dropdown > a::after {
     content: '\\f078' !important;
     font-family: 'Font Awesome 5 Free' !important;
     font-weight: 900 !important;
@@ -157,12 +170,16 @@
     transition: transform 0.3s ease !important;
   }
   .prc-nav-container .menu-item.hover > a,
-  .prc-nav-container .menu-item > a:hover {
+  .prc-nav-container .menu-item > a:hover,
+  .prc-mega-menu .menu-item.hover > a,
+  .prc-mega-menu .menu-item > a:hover {
     background-color: #ff3300 !important;
     color: #ffffff !important;
   }
-  .prc-nav-container .menu-item.hover > a::after { transform: rotate(180deg) !important; }
-  .prc-nav-container .dropdown {
+  .prc-nav-container .menu-item.hover > a::after,
+  .prc-mega-menu .menu-item.hover > a::after { transform: rotate(180deg) !important; }
+  .prc-nav-container .dropdown,
+  .prc-mega-menu .dropdown {
     display: block !important;
     position: absolute !important;
     top: 100% !important;
@@ -178,14 +195,18 @@
     pointer-events: none !important;
     transition: opacity 0.3s ease, visibility 0.3s ease !important;
   }
-  .prc-nav-container .menu-item.hover .dropdown {
+  .prc-nav-container .menu-item.hover .dropdown,
+  .prc-mega-menu .menu-item.hover .dropdown {
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
   }
-  .prc-nav-container .dropdown-size-small { width: 300px !important; }
-  .prc-nav-container .dropdown-size-large { width: 900px !important; }
-  .prc-nav-container .dropdown-column .dropdown-heading {
+  .prc-nav-container .dropdown-size-small,
+  .prc-mega-menu .dropdown-size-small { width: 300px !important; }
+  .prc-nav-container .dropdown-size-large,
+  .prc-mega-menu .dropdown-size-large { width: 900px !important; }
+  .prc-nav-container .dropdown-column .dropdown-heading,
+  .prc-mega-menu .dropdown-column .dropdown-heading {
     font-size: 18px !important;
     font-weight: bold !important;
     color: #000850 !important;
@@ -193,7 +214,8 @@
     padding-bottom: 10px !important;
     border-bottom: 1px solid #eeeeee !important;
   }
-  .prc-nav-container .dropdown-column a {
+  .prc-nav-container .dropdown-column a,
+  .prc-mega-menu .dropdown-column a {
     display: flex !important;
     align-items: center !important;
     padding: 8px 0 !important;
@@ -202,11 +224,13 @@
     color: #000850 !important;
     transition: all 0.2s ease !important;
   }
-  .prc-nav-container .dropdown-column a:hover {
+  .prc-nav-container .dropdown-column a:hover,
+  .prc-mega-menu .dropdown-column a:hover {
     color: #ff3300 !important;
     transform: translateX(5px) !important;
   }
-  .prc-nav-container .dropdown-column a i {
+  .prc-nav-container .dropdown-column a i,
+  .prc-mega-menu .dropdown-column a i {
     color: #ff3300 !important;
     width: 25px !important;
     margin-right: 10px !important;
@@ -214,7 +238,9 @@
     text-align: center !important;
   }
   .prc-nav-container .press-btn,
-  .prc-nav-container .login-btn {
+  .prc-nav-container .login-btn,
+  .prc-mega-menu .press-btn,
+  .prc-mega-menu .login-btn {
     display: flex !important;
     align-items: center !important;
     padding: 10px 10px !important;
@@ -224,17 +250,21 @@
     transition: all 0.3s ease !important;
     white-space: nowrap;
   }
-  .prc-nav-container .press-btn {
+  .prc-nav-container .press-btn,
+  .prc-mega-menu .press-btn {
     background-color: #FF3300 !important;
     color: #ffffff !important;
     padding: 20px 40px !important;
   }
-  .prc-nav-container .press-btn:hover {
+  .prc-nav-container .press-btn:hover,
+  .prc-mega-menu .press-btn:hover {
     background-color: #ff330030 !important;
     padding: 20px 40px !important;
   }
-  .prc-nav-container .login-btn { background-color: transparent !important; color: #000000 !important; }
-  .prc-nav-container .login-btn:hover { color: #ff3300 !important; }
+  .prc-nav-container .login-btn,
+  .prc-mega-menu .login-btn { background-color: transparent !important; color: #000000 !important; }
+  .prc-nav-container .login-btn:hover,
+  .prc-mega-menu .login-btn:hover { color: #ff3300 !important; }
   .prc-nav-container .cart-btn {
     display: flex !important;
     align-items: center !important;
@@ -260,7 +290,9 @@
   .prc-nav-container.scrolled .cart-btn { color: #ffffff !important; border-color: #ffffff !important; }
   .prc-nav-container.scrolled .cart-btn:hover { background-color: #ffffff !important; color: #ff3300 !important; }
   .prc-nav-container .press-btn i,
-  .prc-nav-container .login-btn i { margin-left: 8px !important; }
+  .prc-nav-container .login-btn i,
+  .prc-mega-menu .press-btn i,
+  .prc-mega-menu .login-btn i { margin-left: 8px !important; }
   .prc-nav-container .logo img.white-logo {
     filter: brightness(0) invert(1);
     transition: filter 0.3s ease;
@@ -268,8 +300,10 @@
 
   /* Mobile-only elements are hidden outright on desktop. The media
      query below re-enables them with a higher-specificity rule. */
-  .prc-nav-container .prc-mobile-only { display: none !important; }
-  .prc-nav-container .mobile-footer-links { display: none !important; }
+  .prc-nav-container .prc-mobile-only,
+  .prc-mega-menu .prc-mobile-only { display: none !important; }
+  .prc-nav-container .mobile-footer-links,
+  .prc-mega-menu .mobile-footer-links { display: none !important; }
 
   /* Hamburger button - hidden on desktop, shown on mobile via media query.
      Uses three plain <span> lines instead of a Font Awesome icon so it still
@@ -312,7 +346,8 @@
   }
 
   /* Mobile action buttons inside drawer - hidden on desktop */
-  .prc-nav-container .mobile-action-buttons { display: none; }
+  .prc-nav-container .mobile-action-buttons,
+  .prc-mega-menu .mobile-action-buttons { display: none; }
 
   /* ============================================================
      MOBILE BREAKPOINT (≤${MOBILE_BREAKPOINT}px)
@@ -335,8 +370,12 @@
     /* Show hamburger */
     .prc-nav-container .hamburger { display: flex !important; }
 
-    /* Turn mega-menu into a slide-in drawer */
-    .prc-nav-container .mega-menu {
+    /* Turn mega-menu into a slide-in drawer.
+       The .prc-mega-menu twin is what applies once the drawer has
+       been relocated to <body>, where it is no longer a descendant
+       of .prc-nav-container. */
+    .prc-nav-container .mega-menu,
+    .prc-mega-menu {
       position: fixed !important;
       top: 64px !important;
       left: 0 !important;
@@ -353,17 +392,20 @@
       transition: transform 0.3s ease !important;
       -webkit-overflow-scrolling: touch;
     }
-    .prc-nav-container.mobile-open .mega-menu {
+    .prc-nav-container.mobile-open .mega-menu,
+    .prc-mega-menu.is-open {
       transform: translateX(0) !important;
     }
 
     /* Stack menu items vertically */
-    .prc-nav-container .menu {
+    .prc-nav-container .menu,
+    .prc-mega-menu .menu {
       flex-direction: column !important;
       gap: 0 !important;
       width: 100% !important;
     }
-    .prc-nav-container .menu-item {
+    .prc-nav-container .menu-item,
+    .prc-mega-menu .menu-item {
       border-bottom: 1px solid #eee !important;
       width: 100% !important;
       position: static !important;
@@ -377,10 +419,12 @@
     ${mobileExtraOrderCSS}
 
     /* Reveal mobile-only items (higher specificity than the base
-       .prc-nav-container .prc-mobile-only hide rule) */
-    .prc-nav-container .menu-item.prc-mobile-only { display: block !important; }
+       .prc-mobile-only hide rule) */
+    .prc-nav-container .menu-item.prc-mobile-only,
+    .prc-mega-menu .menu-item.prc-mobile-only { display: block !important; }
 
-    .prc-nav-container .menu-item > a {
+    .prc-nav-container .menu-item > a,
+    .prc-mega-menu .menu-item > a {
       padding: 15px 5px !important;
       font-size: 16px !important;
       color: #000 !important;
@@ -388,22 +432,29 @@
     }
     /* Don't paint the bar red on tap-hover for mobile - just color shift */
     .prc-nav-container .menu-item > a:hover,
-    .prc-nav-container .menu-item.hover > a {
+    .prc-nav-container .menu-item.hover > a,
+    .prc-mega-menu .menu-item > a:hover,
+    .prc-mega-menu .menu-item.hover > a {
       background: transparent !important;
       color: #ff3300 !important;
     }
-    .prc-nav-container .has-dropdown > a::after {
+    .prc-nav-container .has-dropdown > a::after,
+    .prc-mega-menu .has-dropdown > a::after {
       float: right !important;
       margin-top: 7px !important;
     }
-    .prc-nav-container .menu-item.mobile-expanded > a::after {
+    .prc-nav-container .menu-item.mobile-expanded > a::after,
+    .prc-mega-menu .menu-item.mobile-expanded > a::after {
       transform: rotate(180deg) !important;
     }
 
     /* Dropdowns become inline accordions */
     .prc-nav-container .dropdown,
     .prc-nav-container .dropdown-size-small,
-    .prc-nav-container .dropdown-size-large {
+    .prc-nav-container .dropdown-size-large,
+    .prc-mega-menu .dropdown,
+    .prc-mega-menu .dropdown-size-small,
+    .prc-mega-menu .dropdown-size-large {
       position: static !important;
       transform: none !important;
       top: auto !important;
@@ -420,31 +471,39 @@
       display: none !important;
       transition: none !important;
     }
-    .prc-nav-container .menu-item.mobile-expanded .dropdown {
+    .prc-nav-container .menu-item.mobile-expanded .dropdown,
+    .prc-mega-menu .menu-item.mobile-expanded .dropdown {
       display: block !important;
     }
     /* Don't auto-open on desktop-style .hover class on mobile */
-    .prc-nav-container .menu-item.hover .dropdown { display: none !important; }
-    .prc-nav-container .menu-item.hover.mobile-expanded .dropdown { display: block !important; }
+    .prc-nav-container .menu-item.hover .dropdown,
+    .prc-mega-menu .menu-item.hover .dropdown { display: none !important; }
+    .prc-nav-container .menu-item.hover.mobile-expanded .dropdown,
+    .prc-mega-menu .menu-item.hover.mobile-expanded .dropdown { display: block !important; }
 
-    .prc-nav-container .dropdown-grid {
+    .prc-nav-container .dropdown-grid,
+    .prc-mega-menu .dropdown-grid {
       display: block !important;
       grid-template-columns: 1fr !important;
     }
-    .prc-nav-container .dropdown-column { margin-bottom: 10px !important; }
-    .prc-nav-container .dropdown-column .dropdown-heading {
+    .prc-nav-container .dropdown-column,
+    .prc-mega-menu .dropdown-column { margin-bottom: 10px !important; }
+    .prc-nav-container .dropdown-column .dropdown-heading,
+    .prc-mega-menu .dropdown-column .dropdown-heading {
       font-size: 13px !important;
       margin-top: 8px !important;
       margin-bottom: 8px !important;
       padding-bottom: 6px !important;
     }
-    .prc-nav-container .dropdown-column a {
+    .prc-nav-container .dropdown-column a,
+    .prc-mega-menu .dropdown-column a {
       padding: 10px 0 !important;
       color: #000850 !important;
     }
 
     /* Action buttons at bottom of drawer */
-    .prc-nav-container .mobile-action-buttons {
+    .prc-nav-container .mobile-action-buttons,
+    .prc-mega-menu .mobile-action-buttons {
       display: flex !important;
       flex-direction: column !important;
       gap: 10px !important;
@@ -453,7 +512,8 @@
       border-top: 1px solid #eee !important;
       order: 900 !important;
     }
-    .prc-nav-container .mobile-action-buttons a {
+    .prc-nav-container .mobile-action-buttons a,
+    .prc-mega-menu .mobile-action-buttons a {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -464,22 +524,26 @@
       text-decoration: none !important;
       white-space: nowrap !important;
     }
-    .prc-nav-container .mobile-action-buttons .login-btn {
+    .prc-nav-container .mobile-action-buttons .login-btn,
+    .prc-mega-menu .mobile-action-buttons .login-btn {
       background: transparent !important;
       border: 1px solid #ddd !important;
       color: #000 !important;
       margin: 0 !important;
     }
-    .prc-nav-container .mobile-action-buttons .press-btn {
+    .prc-nav-container .mobile-action-buttons .press-btn,
+    .prc-mega-menu .mobile-action-buttons .press-btn {
       background: #ff3300 !important;
       color: #fff !important;
       margin: 0 !important;
       padding: 14px 20px !important;
     }
-    .prc-nav-container .mobile-action-buttons a i { margin-left: 8px !important; }
+    .prc-nav-container .mobile-action-buttons a i,
+    .prc-mega-menu .mobile-action-buttons a i { margin-left: 8px !important; }
 
     /* Secondary / legal links pinned to the very bottom */
-    .prc-nav-container .mobile-footer-links {
+    .prc-nav-container .mobile-footer-links,
+    .prc-mega-menu .mobile-footer-links {
       display: flex !important;
       flex-wrap: wrap !important;
       column-gap: 18px !important;
@@ -489,20 +553,23 @@
       border-top: 1px solid #eee !important;
       order: 950 !important;
     }
-    .prc-nav-container .mobile-footer-links a {
+    .prc-nav-container .mobile-footer-links a,
+    .prc-mega-menu .mobile-footer-links a {
       padding: 6px 0 !important;
       font-size: 13px !important;
       font-weight: 400 !important;
       color: #666 !important;
       background: transparent !important;
     }
-    .prc-nav-container .mobile-footer-links a:hover {
+    .prc-nav-container .mobile-footer-links a:hover,
+    .prc-mega-menu .mobile-footer-links a:hover {
       color: #ff3300 !important;
       background: transparent !important;
     }
 
     /* Keep the primary list above the CTA + footer link blocks */
-    .prc-nav-container .mega-menu > .menu { order: 1 !important; }
+    .prc-nav-container .mega-menu > .menu,
+    .prc-mega-menu > .menu { order: 1 !important; }
 
     /* On mobile, don't let scroll logic flip colors to white over a drawer */
     .prc-nav-container.scrolled .logo img.white-logo { filter: none !important; }
@@ -720,7 +787,7 @@
             <img src="https://irp.cdn-website.com/9d35525b/dms3rep/multi/PRC_full_color.svg" alt="Press Release dot com Logo">
           </a>
         </div>
-        <div class="mega-menu">
+        <div class="mega-menu prc-mega-menu">
           <ul class="menu">
             <li class="menu-item has-dropdown" data-nav="use-cases">
               <a href="#">Use Cases</a>
@@ -763,7 +830,7 @@
                     <a href="https://www.pressrelease.com/download/amplification-checklist"><i class="fas fa-check-square"></i>Amplification Checklist</a>
                     <a href="https://www.pressrelease.com/download/play-book"><i class="fas fa-book-open"></i>Small Business Play Book</a>
                     <div class="dropdown-heading" style="margin-top: 20px;">Features</div>
-                    <a href="${B}/ACCESS-verified"><i class="fas fa-check-circle"></i>ACCESS Verified</a>
+                    <a href="${B}/access-verified"><i class="fas fa-check-circle"></i>ACCESS Verified</a>
                   </div>
                 </div>
               </div>
@@ -863,18 +930,54 @@
   function attachBehaviors() {
     var navContainer = document.querySelector('.prc-nav-container');
     var hamburger = document.querySelector('.prc-nav-container .hamburger');
+    var drawer = document.querySelector('.prc-mega-menu');
 
-    function closeMobileMenu() {
+    // Placeholder marking where the drawer belongs in the DOM while
+    // it is temporarily parked on <body>.
+    var drawerHome = null;
+    var reattachTimer = null;
+
+    /* Move the drawer out to <body>.
+       Any ancestor with a `transform` (Duda headers frequently have one)
+       becomes the containing block for `position: fixed`, which pins the
+       drawer inside the header strip instead of the viewport. Parking it
+       on <body> guarantees there is no transformed ancestor left. */
+    function detachDrawer() {
+      if (!drawer || drawer.parentNode === document.body) return;
+      drawerHome = document.createComment('prc-mega-menu-home');
+      drawer.parentNode.insertBefore(drawerHome, drawer);
+      document.body.appendChild(drawer);
+    }
+
+    function reattachDrawer() {
+      if (!drawer || !drawerHome || !drawerHome.parentNode) return;
+      drawerHome.parentNode.insertBefore(drawer, drawerHome);
+      drawerHome.parentNode.removeChild(drawerHome);
+      drawerHome = null;
+    }
+
+    function closeMobileMenu(immediate) {
       if (!navContainer) return;
       navContainer.classList.remove('mobile-open');
       document.body.classList.remove('prc-mobile-menu-open');
+      if (drawer) drawer.classList.remove('is-open');
       if (hamburger) {
         hamburger.setAttribute('aria-expanded', 'false');
+        hamburger.setAttribute('aria-label', 'Open menu');
       }
       // Collapse any open mobile accordions
-      document.querySelectorAll('.prc-nav-container .menu-item.mobile-expanded').forEach(function (i) {
+      document.querySelectorAll('.menu-item.mobile-expanded').forEach(function (i) {
         i.classList.remove('mobile-expanded');
       });
+
+      // Put the drawer back once the slide-out has finished, so the
+      // animation is still visible. Immediate on desktop resize.
+      clearTimeout(reattachTimer);
+      if (immediate) {
+        reattachDrawer();
+      } else {
+        reattachTimer = setTimeout(reattachDrawer, DRAWER_ANIM_MS);
+      }
     }
 
     // Hamburger toggle
@@ -883,22 +986,36 @@
         e.stopPropagation();
         var willOpen = !navContainer.classList.contains('mobile-open');
         if (willOpen) {
+          clearTimeout(reattachTimer);
+          detachDrawer();
+          // Force a reflow so the browser registers the off-screen
+          // start position before the transform transition runs.
+          if (drawer) void drawer.offsetWidth;
           navContainer.classList.add('mobile-open');
+          if (drawer) drawer.classList.add('is-open');
           document.body.classList.add('prc-mobile-menu-open');
           hamburger.setAttribute('aria-expanded', 'true');
+          hamburger.setAttribute('aria-label', 'Close menu');
         } else {
           closeMobileMenu();
         }
       });
     }
 
+    // Close the drawer on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && navContainer.classList.contains('mobile-open')) {
+        closeMobileMenu();
+      }
+    });
+
     // Dropdown behavior: hover on desktop, tap-toggle on mobile
-    var items = document.querySelectorAll('.prc-nav-container .has-dropdown');
+    var items = document.querySelectorAll('.prc-mega-menu .has-dropdown');
     items.forEach(function (item) {
       // Desktop hover
       item.addEventListener('mouseenter', function () {
         if (isMobileView()) return;
-        document.querySelectorAll('.prc-nav-container .menu-item.hover').forEach(function (i) {
+        document.querySelectorAll('.prc-mega-menu .menu-item.hover').forEach(function (i) {
           if (i !== item) i.classList.remove('hover');
         });
         item.classList.add('hover');
@@ -924,20 +1041,22 @@
     });
 
     // Close mobile menu when user taps a real link
-    document.querySelectorAll('.prc-nav-container .mega-menu a').forEach(function (a) {
+    document.querySelectorAll('.prc-mega-menu a').forEach(function (a) {
       a.addEventListener('click', function () {
         if (!isMobileView()) return;
         var href = a.getAttribute('href');
-        if (href && href !== '#') closeMobileMenu();
+        if (href && href !== '#') closeMobileMenu(true);
       });
     });
 
-    // Reset to desktop state on resize above breakpoint
+    // Reset to desktop state on resize above breakpoint.
+    // The immediate reattach matters: leaving the drawer on <body>
+    // above the breakpoint would empty the desktop nav bar.
     var resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        if (!isMobileView()) closeMobileMenu();
+        if (!isMobileView()) closeMobileMenu(true);
       }, 100);
     });
 
