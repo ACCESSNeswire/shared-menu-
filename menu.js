@@ -13,6 +13,12 @@
  * MOBILE: Below 1024px viewport, the desktop menu collapses
  * into a hamburger drawer. Dropdowns become tap-to-expand
  * accordions. Action buttons move into the drawer footer.
+ *
+ * MOBILE ORDERING: The drawer order is controlled by the
+ * MOBILE_ORDER map in the config block below. It is applied
+ * with CSS `order`, scoped inside the mobile media query, so
+ * the desktop bar always follows source order and is never
+ * affected by changes made there.
  * ============================================================ */
 
 (function () {
@@ -23,8 +29,54 @@
   var MOUNT_ID = 'prc-menu-mount';
   var MOBILE_BREAKPOINT = 1024; // px — below this we switch to mobile nav
 
+  /* ---- MOBILE DRAWER ORDER (mobile only) ---------------------
+   * Keys match the data-nav attribute on each <li class="menu-item">.
+   * Lower number = higher in the drawer. Change these freely;
+   * the desktop bar is unaffected because these rules live inside
+   * the @media (max-width) block.
+   */
+  var MOBILE_ORDER = {
+    'use-cases': 1,
+    'pricing':   2,
+    'resources': 3,
+    'news':      4,
+    'contact':   5
+  };
+
+  /* ---- MOBILE-ONLY NAV ITEMS ---------------------------------
+   * Links that appear in the mobile drawer but NOT in the desktop
+   * bar. Leave empty until you have a confirmed live URL for each
+   * page — do not ship a guessed slug.
+   *
+   * Example once confirmed:
+   *   { label: 'About Us', href: SITE_BASE + '/about-us', order: 6 }
+   */
+  var MOBILE_EXTRA_LINKS = [
+    // { label: 'About Us', href: SITE_BASE + '/about-us', order: 6 },
+  ];
+
+  /* ---- MOBILE FOOTER LINKS (mobile only) ---------------------
+   * Small secondary/legal links pinned below the CTA buttons at
+   * the very bottom of the drawer. This is where Privacy Policy,
+   * Terms of Service and Editorial Content Guidelines belong —
+   * out of the primary nav, still reachable.
+   *
+   * Example once confirmed:
+   *   { label: 'Privacy Policy', href: SITE_BASE + '/privacy-policy' }
+   */
+  var MOBILE_FOOTER_LINKS = [
+    // { label: 'Privacy Policy', href: SITE_BASE + '/privacy-policy' },
+    // { label: 'Terms of Service', href: SITE_BASE + '/terms-of-service' },
+    // { label: 'Editorial Content Guidelines', href: SITE_BASE + '/editorial-content-guidelines' },
+  ];
+
   function isMobileView() {
     return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   // ---- 1. Inject Font Awesome (if not already present) -------
@@ -34,6 +86,18 @@
     fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
     document.head.appendChild(fa);
   }
+
+  // ---- 1b. Build the mobile-only order rules from config -----
+  var mobileOrderCSS = Object.keys(MOBILE_ORDER).map(function (key) {
+    return '.prc-nav-container .menu-item[data-nav="' + key + '"] { order: ' +
+      MOBILE_ORDER[key] + ' !important; }';
+  }).join('\n    ');
+
+  var mobileExtraOrderCSS = MOBILE_EXTRA_LINKS.map(function (link, i) {
+    var ord = (typeof link.order === 'number') ? link.order : (100 + i);
+    return '.prc-nav-container .menu-item[data-nav="extra-' + i + '"] { order: ' +
+      ord + ' !important; }';
+  }).join('\n    ');
 
   // ---- 2. Inject menu styles --------------------------------
   var css = `
@@ -202,6 +266,11 @@
     transition: filter 0.3s ease;
   }
 
+  /* Mobile-only elements are hidden outright on desktop. The media
+     query below re-enables them with a higher-specificity rule. */
+  .prc-nav-container .prc-mobile-only { display: none !important; }
+  .prc-nav-container .mobile-footer-links { display: none !important; }
+
   /* Hamburger button - hidden on desktop, shown on mobile via media query.
      Uses three plain <span> lines instead of a Font Awesome icon so it still
      renders if FA fails to load on the page (e.g. CSP blocks cdnjs). */
@@ -246,7 +315,7 @@
   .prc-nav-container .mobile-action-buttons { display: none; }
 
   /* ============================================================
-     MOBILE BREAKPOINT (≤1024px)
+     MOBILE BREAKPOINT (≤${MOBILE_BREAKPOINT}px)
      ============================================================ */
   @media (max-width: ${MOBILE_BREAKPOINT}px) {
     .prc-nav-container .navbar {
@@ -299,6 +368,18 @@
       width: 100% !important;
       position: static !important;
     }
+
+    /* ---- Mobile-only drawer ordering ------------------------
+       Generated from MOBILE_ORDER / MOBILE_EXTRA_LINKS at the top
+       of this file. Scoped to this media query, so the desktop bar
+       keeps its source order no matter what these say. */
+    ${mobileOrderCSS}
+    ${mobileExtraOrderCSS}
+
+    /* Reveal mobile-only items (higher specificity than the base
+       .prc-nav-container .prc-mobile-only hide rule) */
+    .prc-nav-container .menu-item.prc-mobile-only { display: block !important; }
+
     .prc-nav-container .menu-item > a {
       padding: 15px 5px !important;
       font-size: 16px !important;
@@ -370,6 +451,7 @@
       margin-top: 25px !important;
       padding-top: 20px !important;
       border-top: 1px solid #eee !important;
+      order: 900 !important;
     }
     .prc-nav-container .mobile-action-buttons a {
       display: flex !important;
@@ -395,6 +477,32 @@
       padding: 14px 20px !important;
     }
     .prc-nav-container .mobile-action-buttons a i { margin-left: 8px !important; }
+
+    /* Secondary / legal links pinned to the very bottom */
+    .prc-nav-container .mobile-footer-links {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      column-gap: 18px !important;
+      row-gap: 2px !important;
+      margin-top: 22px !important;
+      padding-top: 16px !important;
+      border-top: 1px solid #eee !important;
+      order: 950 !important;
+    }
+    .prc-nav-container .mobile-footer-links a {
+      padding: 6px 0 !important;
+      font-size: 13px !important;
+      font-weight: 400 !important;
+      color: #666 !important;
+      background: transparent !important;
+    }
+    .prc-nav-container .mobile-footer-links a:hover {
+      color: #ff3300 !important;
+      background: transparent !important;
+    }
+
+    /* Keep the primary list above the CTA + footer link blocks */
+    .prc-nav-container .mega-menu > .menu { order: 1 !important; }
 
     /* On mobile, don't let scroll logic flip colors to white over a drawer */
     .prc-nav-container.scrolled .logo img.white-logo { filter: none !important; }
@@ -585,6 +693,25 @@
 
   // ---- 3. Build menu HTML -----------------------------------
   var B = SITE_BASE;
+
+  // Mobile-only <li> items, rendered from MOBILE_EXTRA_LINKS.
+  // These carry .prc-mobile-only so they never appear on desktop.
+  var mobileExtraItemsHTML = MOBILE_EXTRA_LINKS.map(function (link, i) {
+    var icon = link.icon ? '<i class="' + escAttr(link.icon) + '"></i>' : '';
+    return '\n            <li class="menu-item prc-mobile-only" data-nav="extra-' + i + '">' +
+           '<a href="' + escAttr(link.href) + '">' + icon + link.label + '</a></li>';
+  }).join('');
+
+  // Mobile-only secondary/legal link row. Rendered only if configured,
+  // so an empty config never leaves a stray divider line in the drawer.
+  var mobileFooterHTML = MOBILE_FOOTER_LINKS.length
+    ? '\n          <div class="mobile-footer-links">' +
+      MOBILE_FOOTER_LINKS.map(function (link) {
+        return '\n            <a href="' + escAttr(link.href) + '">' + link.label + '</a>';
+      }).join('') +
+      '\n          </div>'
+    : '';
+
   var menuHTML = `
     <div class="prc-nav-container">
       <div class="navbar">
@@ -595,7 +722,7 @@
         </div>
         <div class="mega-menu">
           <ul class="menu">
-            <li class="menu-item has-dropdown">
+            <li class="menu-item has-dropdown" data-nav="use-cases">
               <a href="#">Use Cases</a>
               <div class="dropdown dropdown-size-large">
                 <div class="dropdown-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
@@ -621,10 +748,10 @@
                 </div>
               </div>
             </li>
-            <li class="menu-item">
+            <li class="menu-item" data-nav="pricing">
               <a href="${B}/get-started">Pricing</a>
             </li>
-            <li class="menu-item has-dropdown">
+            <li class="menu-item has-dropdown" data-nav="resources">
               <a href="#">Resources</a>
               <div class="dropdown dropdown-size-small">
                 <div class="dropdown-grid" style="grid-template-columns: 1fr;">
@@ -641,12 +768,12 @@
                 </div>
               </div>
             </li>
-            <li class="menu-item">
+            <li class="menu-item" data-nav="news">
               <a href="${B}/newsroom">News</a>
             </li>
-            <li class="menu-item">
+            <li class="menu-item" data-nav="contact">
               <a href="${B}/contact-us">Contact Us</a>
-            </li>
+            </li>${mobileExtraItemsHTML}
           </ul>
           <div class="mobile-action-buttons">
             <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
@@ -655,7 +782,7 @@
             <a href="https://checkout.pressrelease.com/checkout/cart" class="press-btn">
               Purchase Now <i class="fas fa-sign-in-alt"></i>
             </a>
-          </div>
+          </div>${mobileFooterHTML}
         </div>
         <div class="action-buttons">
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
