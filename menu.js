@@ -41,6 +41,19 @@
   var MOBILE_BREAKPOINT = 1024; // px — below this we switch to mobile nav
   var DRAWER_ANIM_MS = 320;     // must be >= the CSS transform transition
 
+  /* ---- PURCHASE NOW DESTINATION (per-host) -------------------
+   * The same script is served to every site, so the button target
+   * is decided at runtime from the hostname:
+   *   - On checkout.pressrelease.com (Magento) the user is already
+   *     inside the store, so Purchase Now goes straight to the cart.
+   *   - Everywhere else (www.pressrelease.com / pressrelease.com on
+   *     Duda) it goes to the Magento pricing page.
+   * Used by BOTH the desktop button and the mobile drawer button.
+   */
+  var PURCHASE_URL = (window.location.hostname.toLowerCase() === 'checkout.pressrelease.com')
+    ? 'https://checkout.pressrelease.com/checkout/cart'
+    : 'https://checkout.pressrelease.com/pricing.html';
+
   /* ---- MOBILE DRAWER ORDER (mobile only) ---------------------
    * Keys match the data-nav attribute on each <li class="menu-item">.
    * Lower number = higher in the drawer. Change these freely;
@@ -846,7 +859,7 @@
             <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
               Login <i class="fas fa-user-circle"></i>
             </a>
-            <a href="https://checkout.pressrelease.com/pricing.html" class="press-btn">
+            <a href="${PURCHASE_URL}" class="press-btn">
               Purchase Now <i class="fas fa-sign-in-alt"></i>
             </a>
           </div>${mobileFooterHTML}
@@ -855,7 +868,7 @@
           <a href="https://app.accessnewswire.com/login/pressrelease" target="_blank" class="login-btn">
             Login <i class="fas fa-user-circle"></i>
           </a>
-          <a href="https://checkout.pressrelease.com/pricing.html" class="press-btn">
+          <a href="${PURCHASE_URL}" class="press-btn">
             Purchase Now<i class="fas fa-sign-in-alt"></i>
           </a>
           <a href="https://checkout.pressrelease.com/checkout/cart" class="cart-btn" aria-label="Cart" title="Cart">
